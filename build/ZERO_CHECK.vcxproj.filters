@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Alexis Crickx\Documents\_Cours\IGD\INF585\MeshCollider\MeshCollider\build\CMakeFiles\2814f46b3b802d66982268843d0500cb\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{4C5D74B1-CF88-33CF-8F55-485006225D87}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

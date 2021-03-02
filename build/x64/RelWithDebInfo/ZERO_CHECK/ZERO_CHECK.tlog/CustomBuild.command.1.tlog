@@ -1,0 +1,10 @@
+^C:\USERS\ALEXIS CRICKX\DOCUMENTS\_COURS\IGD\INF585\MESHCOLLIDER\MESHCOLLIDER\BUILD\CMAKEFILES\2814F46B3B802D66982268843D0500CB\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/Alexis Crickx/Documents/_Cours/IGD/INF585/MeshCollider/MeshCollider" "-BC:/Users/Alexis Crickx/Documents/_Cours/IGD/INF585/MeshCollider/MeshCollider/build" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "C:/Users/Alexis Crickx/Documents/_Cours/IGD/INF585/MeshCollider/MeshCollider/build/MeshCollider.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
