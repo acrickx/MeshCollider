@@ -29,8 +29,10 @@ struct scene_environment
 };
 scene_environment scene;
 
-mesh_drawable sphere;
 segments_drawable cube_wireframe;
+
+mesh obj;
+mesh_drawable object;
 
 timer_event_periodic timer(0.5f);
 std::vector<particle_structure> particles;
@@ -144,9 +146,11 @@ void initialize_data()
 	scene.camera.distance_to_center = 2.5f;
 	scene.camera.look_at({4,3,2}, {0,0,0}, {0,0,1});
 
-	sphere = mesh_drawable(mesh_primitive_sphere());
+	//sphere = mesh_drawable(mesh_primitive_sphere());
+	obj = mesh_load_file_obj("assets/bowling_pin.obj");
+	object = mesh_drawable(obj);
+	object.transform.rotate = rotation(vec3(1, 0, 0), pi/2.f);
 
-	
 	// Edges of the containing cube
 	//  Note: this data structure is set for display purpose - don't use it to compute some information on the cube - it would be un-necessarily complex
 	buffer<vec3> cube_wireframe_data = {{-1,-1,-1},{1,-1,-1}, {1,-1,-1},{1,1,-1}, {1,1,-1},{-1,1,-1}, {-1,1,-1},{-1,-1,-1},
@@ -161,11 +165,11 @@ void display_scene()
 	for(size_t k=0; k<N; ++k)
 	{
 		particle_structure const& particle = particles[k];
-		sphere.shading.color = particle.c;
-		sphere.transform.translate = particle.p;
-		sphere.transform.scale = particle.r;
+		object.shading.color = particle.c;
+		object.transform.translate = particle.p;
+		object.transform.scale = particle.r;
 
-		draw(sphere, scene);
+		draw(object, scene);
 	}
 	draw(cube_wireframe, scene);
 }
