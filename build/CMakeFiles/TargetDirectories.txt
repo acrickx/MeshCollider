@@ -1,3 +1,0 @@
-C:/Users/Alexis Crickx/Documents/_Cours/IGD/INF585/MeshCollider/MeshCollider/build/CMakeFiles/MeshCollider.dir
-C:/Users/Alexis Crickx/Documents/_Cours/IGD/INF585/MeshCollider/MeshCollider/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/Alexis Crickx/Documents/_Cours/IGD/INF585/MeshCollider/MeshCollider/build/CMakeFiles/ZERO_CHECK.dir
