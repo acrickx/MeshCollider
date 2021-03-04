@@ -60,7 +60,7 @@ private:
     buffer<uint3> m_connectivity;
     const mesh* m_mesh=nullptr;
 
-public:    
+public:
     inline BVHnode() {}
     inline BVHnode(const mesh* mod)
     {
@@ -70,7 +70,7 @@ public:
     }
     inline BVHnode(buffer<uint3> connectivity, AABB aabb, const mesh* mod)
     {
-        std::cout << "size : " << connectivity.size() << std::endl;
+        //std::cout << "size : " << connectivity.size() << std::endl;
         //stop condition
         if (connectivity.size() <= 1)
         {
@@ -105,13 +105,34 @@ public:
             buffer<uint3> connectivityLeft, connectivityRight;
             const vec3& init = mod->position(connectivity(0)[0]);
             vec3 minRight=init, minLeft=init, maxRight=init, maxLeft=init;
+            bool addLeft = false;
             for (int i = 0; i < connectivity.size(); i++)
             {            
                 const vec3& pt0 = mod->position(connectivity(i)[0]);
                 const vec3& pt1 = mod->position(connectivity(i)[1]);
                 const vec3& pt2 = mod->position(connectivity(i)[2]);
                 vec3 bar = (pt0 + pt1 + pt2) / 3.f;
-                if (bar(dimension) < median)
+                if (bar(dimension) == median)
+                {
+                    if (addLeft) {
+                        connectivityLeft.push_back(connectivity(i));
+                        for (int j = 0; j < 3; j++)
+                        {
+                            minLeft(j) = std::min(minLeft(j), std::min(pt2(j), std::min(pt0(j), pt1(j))));
+                            maxLeft(j) = std::max(maxLeft(j), std::max(pt2(j), std::max(pt0(j), pt1(j))));
+                        }
+                    }
+                    else {
+                        connectivityRight.push_back(connectivity(i));
+                        for (int j = 0; j < 3; j++)
+                        {
+                            minRight(j) = std::min(minRight(j), std::min(pt2(j), std::min(pt0(j), pt1(j))));
+                            maxRight(j) = std::max(maxRight(j), std::max(pt2(j), std::max(pt0(j), pt1(j))));
+                        }
+                    }
+                    addLeft = !addLeft;
+                }
+                else if (bar(dimension) < median)
                 {
                     connectivityLeft.push_back(connectivity(i));
                     for (int j = 0; j < 3; j++)
