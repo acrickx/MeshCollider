@@ -1,9 +1,10 @@
 #pragma once
 
 #include "vcl/vcl.hpp"
+#include "AccelerationDS.h"
 
 struct particle_structure
-{
+{	
 	vcl::vec3 p; // Position
 	vcl::vec3 v; // Speed
 

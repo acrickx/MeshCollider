@@ -32,7 +32,9 @@ scene_environment scene;
 segments_drawable cube_wireframe;
 
 model pin;
+model pin2;
 mesh_drawable pin_drawable;
+mesh_drawable pin_drawable2;
 
 timer_event_periodic timer(0.5f);
 std::vector<particle_structure> particles;
@@ -115,7 +117,7 @@ void emit_particle()
 	//  Assume first that all particles have the same radius and mass
 	static buffer<vec3> const color_lut = {{1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1}};
 	if (timer.event && user.gui.add_sphere) {
-		float const theta = rand_interval(0, 2*pi);
+		float const theta = 0.f; //rand_interval(0, 2*pi);
 		vec3 const v = vec3(1.0f*std::cos(theta), 1.0f*std::sin(theta), 4.0f);
 
 		particle_structure particle;
@@ -126,9 +128,8 @@ void emit_particle()
 		particle.m = 1.0f; //
 
 		particles.push_back(particle);
-	}
+	}	
 }
-
 
 void initialize_data()
 {
@@ -148,8 +149,13 @@ void initialize_data()
 	//sphere = mesh_drawable(mesh_primitive_sphere());
 	
 	pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
-	pin_drawable = mesh_drawable(pin.modelMesh());
+	mesh test = mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj");	
+	pin_drawable = mesh_drawable(pin.modelMesh());	
 	pin_drawable.transform.rotate = rotation(vec3(1, 0, 0), pi/2.f);
+
+	pin2 = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
+	pin_drawable2 = mesh_drawable(pin.modelMesh());
+	pin_drawable2.transform.rotate = rotation(vec3(1, 0, 0), pi / 2.f);
 
 	// Edges of the containing cube
 	//  Note: this data structure is set for display purpose - don't use it to compute some information on the cube - it would be un-necessarily complex

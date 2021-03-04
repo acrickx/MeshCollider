@@ -2,7 +2,6 @@
 
 using namespace vcl;
 
-#ifdef SOLUTION
 void collision_sphere_plane(vcl::vec3& p, vcl::vec3& v, float r, vcl::vec3 const& n, vcl::vec3 const& p0)
 {
     float const epsilon = 1e-5f;
@@ -49,9 +48,8 @@ void collision_sphere_sphere(vcl::vec3& p1, vcl::vec3& v1, float r1, vcl::vec3& 
 
     }
 }
-#endif
 
-#ifdef SOLUTION
+
 void simulate(std::vector<particle_structure>& particles, float dt_true)
 {
 	
@@ -95,22 +93,3 @@ void simulate(std::vector<particle_structure>& particles, float dt_true)
 	}
 
 }
-#else
-void simulate(std::vector<particle_structure>& particles, float dt)
-{
-	vec3 const g = {0,0,-9.81f};
-	size_t const N = particles.size();
-	for (size_t k = 0; k < N; ++k)
-	{
-		particle_structure& particle = particles[k];
-
-		vec3 const f = particle.m * g;
-
-		particle.v = (1-0.9f*dt)*particle.v + dt*f;
-		particle.p = particle.p + dt*particle.v;
-	}
-
-	// To do :
-	//  Handle collision ...
-}
-#endif

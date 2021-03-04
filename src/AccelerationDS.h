@@ -70,7 +70,7 @@ public:
     }
     inline BVHnode(buffer<uint3> connectivity, AABB aabb, const mesh* mod)
     {
-        //std::cout << "size : " << connectivity.size() << std::endl;
+        std::cout << "size : " << connectivity.size() << std::endl;
         //stop condition
         if (connectivity.size() <= 1)
         {
@@ -157,6 +157,49 @@ public:
             m_left = &left; m_right = &right;        
         }
     }
+    bool intersect(const BVHnode& other)
+    {   
+        if (!m_aabb.intersect(other.aabb())) 
+        { 
+            return false; 
+        }
+        else if (!isLeaf())
+        {
+            
+            if (!other.isLeaf())
+            {         
+                bool ll = m_left->intersect(*(other.left()));
+                bool lr = m_left->intersect(*(other.right()));
+                bool rr = m_right->intersect(*(other.right()));
+                bool rl = m_right->intersect(*(other.left()));   
+                return ll || lr || rr || rl;
+            }
+            else
+            {
+                bool lo = m_left->intersect(other);
+                bool ro = m_right->intersect(other);
+                return lo || ro;
+            }
+        }
+        else
+        {
+            if (!m_aabb.intersect(other.aabb())) { return false; }
+            if (!other.isLeaf())
+            {
+                bool tl = intersect(*(other.left()));
+                bool tr = intersect(*(other.right()));
+                return tl || tr;
+            }
+            else
+            {
+                return true;
+            }
+        }
+    }
+    inline bool isLeaf() const { return (m_connectivity.size() == 1); }    
+    inline const AABB& aabb() const { return m_aabb; }
+    inline const BVHnode* left() const {return m_left;}
+    inline const BVHnode* right() const {return m_right;}
 };
 
 
