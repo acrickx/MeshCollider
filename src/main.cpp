@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "simulation.hpp"
+#include"AccelerationDS.h"
 
 using namespace vcl;
 
@@ -30,8 +31,8 @@ scene_environment scene;
 
 segments_drawable cube_wireframe;
 
-mesh obj;
-mesh_drawable object;
+model pin;
+mesh_drawable pin_drawable;
 
 timer_event_periodic timer(0.5f);
 std::vector<particle_structure> particles;
@@ -48,7 +49,6 @@ void emit_particle();
 
 int main(int, char* argv[])
 {
-
 	std::cout << "Run " << argv[0] << std::endl;
 
 	int const width = 1280, height = 1024;
@@ -146,9 +146,10 @@ void initialize_data()
 	scene.camera.look_at({4,3,2}, {0,0,0}, {0,0,1});
 
 	//sphere = mesh_drawable(mesh_primitive_sphere());
-	obj = mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj");
-	object = mesh_drawable(obj);
-	object.transform.rotate = rotation(vec3(1, 0, 0), pi/2.f);
+	
+	pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
+	pin_drawable = mesh_drawable(pin.modelMesh());
+	pin_drawable.transform.rotate = rotation(vec3(1, 0, 0), pi/2.f);
 
 	// Edges of the containing cube
 	//  Note: this data structure is set for display purpose - don't use it to compute some information on the cube - it would be un-necessarily complex
@@ -164,11 +165,11 @@ void display_scene()
 	for(size_t k=0; k<N; ++k)
 	{
 		particle_structure const& particle = particles[k];
-		object.shading.color = particle.c;
-		object.transform.translate = particle.p;
-		object.transform.scale = particle.r;
+		pin_drawable.shading.color = particle.c;
+		pin_drawable.transform.translate = particle.p;
+		pin_drawable.transform.scale = particle.r;
 
-		draw(object, scene);
+		draw(pin_drawable, scene);
 	}
 	draw(cube_wireframe, scene);
 }
