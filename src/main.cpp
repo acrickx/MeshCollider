@@ -3,7 +3,6 @@
 
 #include "simulation.hpp"
 
-
 using namespace vcl;
 
 struct gui_parameters {
@@ -147,7 +146,7 @@ void initialize_data()
 	scene.camera.look_at({4,3,2}, {0,0,0}, {0,0,1});
 
 	//sphere = mesh_drawable(mesh_primitive_sphere());
-	obj = mesh_load_file_obj("assets/bowling_pin.obj");
+	obj = mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj");
 	object = mesh_drawable(obj);
 	object.transform.rotate = rotation(vec3(1, 0, 0), pi/2.f);
 

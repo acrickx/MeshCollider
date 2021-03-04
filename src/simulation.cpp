@@ -2,8 +2,6 @@
 
 using namespace vcl;
 
-
-
 #ifdef SOLUTION
 void collision_sphere_plane(vcl::vec3& p, vcl::vec3& v, float r, vcl::vec3 const& n, vcl::vec3 const& p0)
 {
