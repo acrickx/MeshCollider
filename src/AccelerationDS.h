@@ -1,11 +1,20 @@
 #pragma once
 
 #include "vcl/vcl.hpp"
-#include "simulation.hpp"
 
 #include<algorithm>
 
 using namespace vcl;
+
+struct particle_structure
+{
+    vcl::vec3 p; // Position
+    vcl::vec3 v; // Speed
+
+    vcl::vec3 c; // Color
+    float r;     // Radius
+    float m;     // mass
+};
 
 class AABB {
 public:
@@ -41,6 +50,22 @@ public:
             m_minCorner(0) > max2(0) || m_minCorner(1) > max2(1) || m_minCorner(2) > max2(2))
             return false;
         return true;
+    }
+
+    inline bool intersect(const particle_structure& other)
+    {
+        float dmin = 0;
+        vec3 C = other.c;
+
+        for (int i = 0; i < 3; i++) {
+            if (C[i] < m_minCorner[i]) dmin += sqrt(C[i] - m_minCorner[i]); 
+            else if (C[i] > m_maxCorner[i]) dmin += sqrt(C[i] - m_maxCorner[i]);
+        }
+        if (dmin <= powf(other.r, 2))
+        {            
+            return true;
+        }
+        else return false;
     }
 
     // intersection with plane
@@ -188,7 +213,7 @@ public:
     }
 
     // intersection between 2 objects
-    inline bool intersect(const BVHnode& other, buffer<SS>& triangleSS, buffer<SS>& triangleSSOther)
+    inline bool intersect (const BVHnode& other, buffer<SS>& triangleSS, buffer<SS>& triangleSSOther)
     {
         if (!m_aabb.intersect(other.aabb()))
             return false;
@@ -242,6 +267,29 @@ public:
         }
         bool intersectLeft = m_left->intersect(n, p0, aabbs);
         bool intersectRight = m_right->intersect(n, p0, aabbs);
+        return intersectLeft || intersectRight;
+    }
+
+    //intersect with sphere
+    inline bool intersect(particle_structure& part) {        
+        if (!m_aabb.intersect(part))
+            return false;
+        if (isLeaf()) {
+            std::cout << "intersect" << std::endl;
+            SS aabb_sphere;
+            computeSurroundingSphere(m_aabb, aabb_sphere.center, aabb_sphere.radius);
+            //contact normal
+            vec3 n(normalize(part.c - aabb_sphere.center));
+            //position
+            part.p = aabb_sphere.center + (aabb_sphere.radius+ part.r)*n;
+            //velocity
+            vec3 const vn = dot(part.v, n) * n;
+            vec3 const vt = part.v - vn;
+            part.v = -0.95f * vn + 0.9 * vt;
+            return true;
+        }
+        bool intersectLeft = m_left->intersect(part);
+        bool intersectRight = m_right->intersect(part);
         return intersectLeft || intersectRight;
     }
 
@@ -314,6 +362,19 @@ public:
             m_mesh.position(i) = rot * m_mesh.position(i);
         }
     }
+
+    inline void scale(const float scaleFactor) {
+        for (size_t i = 0; i < m_mesh.position.size(); i++) {
+            m_mesh.position(i) = scaleFactor * m_mesh.position(i);
+        }
+    }
+
+    inline void translate(const vec3& translation) {
+        for (size_t i = 0; i < m_mesh.position.size(); i++) {
+            m_mesh.position(i) = m_mesh.position(i)+translation;
+        }
+    }
+
 
     inline mesh& modelMesh() { return m_mesh; }
     inline const mesh& modelMesh() const { return m_mesh; }

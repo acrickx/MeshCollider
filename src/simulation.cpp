@@ -206,7 +206,7 @@ void simulate(std::vector<model*>& objects, float dt_true) {
 	}
 }
 
-void simulate(std::vector<particle_structure>& particles, float dt_true)
+void simulate(std::vector<particle_structure>& particles, float dt_true, std::vector<model>& objects)
 {
 	vec3 const g = {0,0,-9.81f};
 	size_t const N_substep = 10;
@@ -233,6 +233,15 @@ void simulate(std::vector<particle_structure>& particles, float dt_true)
 				collision_sphere_sphere(p1.p,p1.v,p1.r, p2.p,p2.v,p2.r);
 			}
 		}
+		//Collisions with model
+		for (size_t k = 0; k < N; k++)
+		{
+			for (int i = 0; i < objects.size(); i++)
+			{				
+				objects[i].BVHroot().intersect(particles[k]);
+			}
+		}
+
 		// Collisions with cube
 		const std::vector<vec3> face_normal  = {{0, 1,0}, { 1,0,0}, {0,0, 1}, {0,-1,0}, {-1,0,0}, {0,0,-1}};
 		const std::vector<vec3> face_position = {{0,-1,0}, {-1,0,0}, {0,0,-1}, {0, 1,0}, { 1,0,0}, {0,0, 1}};

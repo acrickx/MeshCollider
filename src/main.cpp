@@ -2,7 +2,6 @@
 #include <iostream>
 
 #include "simulation.hpp"
-#include"AccelerationDS.h"
 
 using namespace vcl;
 
@@ -34,11 +33,12 @@ segments_drawable cube_wireframe;
 
 model pin;
 mesh_drawable pin_drawable;
-rotation rot(vec3(1, 0, 0), pi / 2.f);
+mesh_drawable sphere;
+rotation rot(vec3(1, 0, 0), pi / 4.f);
 
 timer_event_periodic timer(3.f);
 std::vector<particle_structure> particles;
-std::vector<model*> objects; // new
+std::vector<model> objects; // new
 
 void mouse_move_callback(GLFWwindow* window, double xpos, double ypos);
 void window_size_callback(GLFWwindow* window, int width, int height);
@@ -90,14 +90,13 @@ int main(int, char* argv[])
 		user.cursor_on_gui = ImGui::IsAnyWindowFocused();
 
 		if(user.gui.display_frame) draw(user.global_frame, scene);
-		emit_object(); // new
-		//emit_particle();
+		//emit_object();
+		emit_particle();
 		display_interface();
 		float const dt = 0.01f * timer.scale;
-		simulate(objects, dt); // new
-		//simulate(particles, dt);
-		display_scene_obj();
-		//display_scene();
+		//simulate(objects, dt); 
+		simulate(particles, dt,  objects);
+		display_scene();
 
 		ImGui::End();
 		imgui_render_frame(window);
@@ -119,11 +118,11 @@ void emit_object() {
 		std::cout << "new obj\n";
 		float const theta = rand_interval(0, 2*pi);
 		vec3 const v;// = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 8.0f);
-		model *obj = new model(pin);
-		obj->position() = { 0, 0, 0 };
-		obj->color() = color_lut[int(rand_interval() * color_lut.size())];
-		obj->velocity() = v;
-		obj->mass() = 1.0f;
+		model obj(pin);
+		obj.position() = { 0, 0, 0 };
+		obj.color() = color_lut[int(rand_interval() * color_lut.size())];
+		obj.velocity() = v;
+		obj.mass() = 1.0f;
 		objects.push_back(obj);
 	}
 }
@@ -161,18 +160,18 @@ void initialize_data()
 	scene.camera.distance_to_center = 2.5f;
 	scene.camera.look_at({4,3,2}, {0,0,0}, {0,0,1});
 
-	//sphere = mesh_drawable(mesh_primitive_sphere());
-	
+	//sphere model
+	sphere = mesh_drawable(mesh_primitive_sphere());
+
+	//obstacle mesh	
 	pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
 	pin.rotate(rot);
-
-	//mesh test = mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj");
+	pin.translate(vec3(0, -2, -3));
+	pin.BVHroot() = BVHnode(&pin.modelMesh(), 1.f);
+	objects.push_back(pin);
 	pin_drawable = mesh_drawable(pin.modelMesh());
-	//pin_drawable.transform.rotate = rot;
+	std::cout << "min : " << pin.BVHroot().aabb().minCorner() << "max : " << pin.BVHroot().aabb().maxCorner() << std::endl;
 
-	//pin2 = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
-	//pin_drawable2 = mesh_drawable(pin.modelMesh());
-	//pin_drawable2.transform.rotate = rotation(vec3(1, 0, 0), pi / 2.f);
 
 	// Edges of the containing cube
 	//  Note: this data structure is set for display purpose - don't use it to compute some information on the cube - it would be un-necessarily complex
@@ -188,12 +187,13 @@ void display_scene()
 	for(size_t k=0; k<N; ++k)
 	{
 		particle_structure const& particle = particles[k];
-		pin_drawable.shading.color = particle.c;
-		pin_drawable.transform.translate = particle.p;
-		pin_drawable.transform.scale = particle.r;
+		sphere.shading.color = particle.c;
+		sphere.transform.translate = particle.p;
+		sphere.transform.scale = particle.r;
 
-		draw(pin_drawable, scene);
+		draw(sphere, scene);
 	}
+	draw(pin_drawable, scene);
 	draw(cube_wireframe, scene);
 }
 
@@ -203,10 +203,10 @@ void display_scene_obj()
 	size_t const N = objects.size();
 	for (size_t k = 0; k < N; k++)
 	{
-		model const *obj = objects[k];
-		pin_drawable.shading.color = obj->color();
-		pin_drawable.transform.translate = obj->position();
-		pin_drawable.transform.scale = obj->sizeScale();
+		model obj = objects[k];
+		pin_drawable.shading.color = obj.color();
+		pin_drawable.transform.translate = obj.position();
+		pin_drawable.transform.scale = obj.sizeScale();
 
 		draw(pin_drawable, scene);
 	}
