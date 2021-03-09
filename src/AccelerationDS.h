@@ -187,6 +187,7 @@ public:
         centerSphere = (aabb.minCorner() + aabb.maxCorner()) / 2.f;
     }
 
+    // intersection between 2 objects
     inline bool intersect(const BVHnode& other, buffer<SS>& triangleSS, buffer<SS>& triangleSSOther)
     {
         if (!m_aabb.intersect(other.aabb()))
@@ -202,7 +203,6 @@ public:
                 ssThis.radius = radius; ssOther.radius = radiusOther;
                 triangleSS.push_back(ssThis);
                 triangleSSOther.push_back(ssOther);
-                //std::cout << "intersect\n";
                 return true;
             }
             return false;
@@ -253,11 +253,11 @@ public:
             const vec3& p1 = m_mesh->position(m_connectivity(0)(0)) * sizeScale + trans;
             const vec3& p2 = m_mesh->position(m_connectivity(0)(1)) * sizeScale + trans;
             const vec3& p3 = m_mesh->position(m_connectivity(0)(2)) * sizeScale + trans;
+
             float dot1 = dot(p0 - p1, n), dot2 = dot(p0 - p2, n), dot3 = dot(p0 - p3, n);
             if ((dot1 < 0 && dot2 < 0 && dot3 < 0) || (dot1 > 0 && dot2 > 0 && dot3 > 0))
                 return false;
             triangles.push_back(&m_connectivity(0));
-            std::cout << "intersect\n";
             return true;
         }
         bool intersectLeft = m_left->intersect(n, p0, triangles, trans, sizeScale);
@@ -307,6 +307,12 @@ public:
     inline void updatePosition(const vec3& newPos) {
         m_BVHroot.updatePosition(newPos - m_position);
         m_position = vec3(newPos);
+    }
+
+    inline void rotate(const rotation& rot) {
+        for (size_t i = 0; i < m_mesh.position.size(); i++) {
+            m_mesh.position(i) = rot * m_mesh.position(i);
+        }
     }
 
     inline mesh& modelMesh() { return m_mesh; }

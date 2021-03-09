@@ -20,9 +20,6 @@ void collision_obj_plane(model* obj, vcl::vec3 const& n, vcl::vec3 const& p0)
 				const vec3 p1 = obj->modelMesh().position(tri(0)) * obj->sizeScale() + obj->position() + translationPos;
 				const vec3 p2 = obj->modelMesh().position(tri(1)) * obj->sizeScale() + obj->position() + translationPos;
 				const vec3 p3 = obj->modelMesh().position(tri(2)) * obj->sizeScale() + obj->position() + translationPos;
-				/*const vec3 p1 = (obj->modelMesh().position(tri(0)) + obj->position() + translationPos) * obj->sizeScale();
-				const vec3 p2 = (obj->modelMesh().position(tri(1)) + obj->position() + translationPos) * obj->sizeScale();
-				const vec3 p3 = (obj->modelMesh().position(tri(2)) + obj->position() + translationPos) * obj->sizeScale();*/
 
 				float dot1 = dot(p0 - p1, n), dot2 = dot(p0 - p2, n), dot3 = dot(p0 - p3, n);
 				bool update = true;

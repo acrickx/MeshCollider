@@ -33,9 +33,8 @@ scene_environment scene;
 segments_drawable cube_wireframe;
 
 model pin;
-model pin2;
 mesh_drawable pin_drawable;
-mesh_drawable pin_drawable2;
+rotation rot(vec3(1, 0, 0), pi / 2.f);
 
 timer_event_periodic timer(3.f);
 std::vector<particle_structure> particles;
@@ -116,10 +115,10 @@ int main(int, char* argv[])
 // new
 void emit_object() {
 	static buffer<vec3> const color_lut = { {1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1} };
-	if (timer.event && user.gui.add_obj && objects.size() < 1) {
+	if (timer.event && user.gui.add_obj && objects.size() <= 1) {
 		std::cout << "new obj\n";
 		float const theta = rand_interval(0, 2*pi);
-		vec3 const v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 8.0f);
+		vec3 const v;// = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 8.0f);
 		model *obj = new model(pin);
 		obj->position() = { 0, 0, 0 };
 		obj->color() = color_lut[int(rand_interval() * color_lut.size())];
@@ -165,10 +164,11 @@ void initialize_data()
 	//sphere = mesh_drawable(mesh_primitive_sphere());
 	
 	pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
+	pin.rotate(rot);
 
 	//mesh test = mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj");
 	pin_drawable = mesh_drawable(pin.modelMesh());
-	pin_drawable.transform.rotate = rotation(vec3(1, 0, 0), pi/2.f);
+	//pin_drawable.transform.rotate = rot;
 
 	//pin2 = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
 	//pin_drawable2 = mesh_drawable(pin.modelMesh());
