@@ -1,7 +1,7 @@
 #pragma once
 
 #include "vcl/vcl.hpp"
-
+//#include <limits>
 #include<algorithm>
 
 using namespace vcl;
@@ -10,7 +10,6 @@ struct particle_structure
 {
     vcl::vec3 p; // Position
     vcl::vec3 v; // Speed
-
     vcl::vec3 c; // Color
     float r;     // Radius
     float m;     // mass
@@ -54,14 +53,25 @@ public:
 
     inline bool intersect(const particle_structure& other)
     {
+        vec3 S = other.p; vec3 C1 = m_minCorner; vec3 C2 = m_maxCorner;
+        float dist_squared = other.r * other.r;
+        /* assume C1 and C2 are element-wise sorted, if not, do that now */
+        if (S(0) < C1(0)) dist_squared -= (S(0) - C1(0)) * (S(0) - C1(0));
+        else if (S(0) > C2(0)) dist_squared -= (S(0) - C2(0)) * (S(0) - C2(0));
+        if (S(1) < C1(1)) dist_squared -= (S(1) - C1(1)) * (S(1) - C1(1));
+        else if (S(1) > C2(1)) dist_squared -= (S(1) - C2(1)) * (S(1) - C2(1));
+        if (S(2) < C1(2)) dist_squared -= (S(2) - C1(2)) * (S(2) - C1(2));
+        else if (S(2) > C2(2)) dist_squared -= (S(2) - C2(2)) * (S(2) - C2(2));
+        return dist_squared > -1e-5;
+
         float dmin = 0;
-        vec3 C = other.c;
+        vec3 C = other.p;
 
         for (int i = 0; i < 3; i++) {
             if (C[i] < m_minCorner[i]) dmin += sqrt(C[i] - m_minCorner[i]); 
             else if (C[i] > m_maxCorner[i]) dmin += sqrt(C[i] - m_maxCorner[i]);
         }
-        if (dmin <= powf(other.r, 2))
+        if (dmin <= powf(other.r, 2.f))
         {            
             return true;
         }
@@ -107,7 +117,7 @@ private:
     BVHnode *m_right = nullptr;
     AABB m_aabb;
     buffer<uint3> m_connectivity;
-    const mesh* m_mesh=nullptr;
+    const mesh* m_mesh = nullptr;
 
 public:
     inline BVHnode() {}
@@ -152,8 +162,10 @@ public:
             float median = barycenters[barycenters.size() / 2];
             //sort triangles in two subsets
             buffer<uint3> connectivityLeft, connectivityRight;
-            vec3 init(mod->position(connectivity(0)[0]));
-            vec3 minRight(init), minLeft(init), maxRight(init), maxLeft(init);
+            constexpr float MAX_FLOAT = std::numeric_limits<float>::max();
+            constexpr float MIN_FLOAT = std::numeric_limits<float>::lowest();
+            vec3 minRight(MAX_FLOAT, MAX_FLOAT, MAX_FLOAT), minLeft(MAX_FLOAT, MAX_FLOAT, MAX_FLOAT);
+            vec3 maxRight(MIN_FLOAT, MIN_FLOAT, MIN_FLOAT), maxLeft(MIN_FLOAT, MIN_FLOAT, MIN_FLOAT);
             bool addLeft = false;
             for (int i = 0; i < connectivity.size(); i++)
             {            
@@ -203,7 +215,7 @@ public:
             //compute AABB
             AABB aabbLeft(minLeft, maxLeft, sizeScale), aabbRight(minRight, maxRight, sizeScale);
             m_left = new BVHnode(connectivityLeft, aabbLeft, mod, sizeScale);
-            m_right = new BVHnode(connectivityRight, aabbLeft, mod, sizeScale);       
+            m_right = new BVHnode(connectivityRight, aabbRight, mod, sizeScale);       
         }
     }
 
@@ -271,25 +283,30 @@ public:
     }
 
     //intersect with sphere
-    inline bool intersect(particle_structure& part) {        
-        if (!m_aabb.intersect(part))
+    inline bool intersect(particle_structure& part, buffer<vec3> &newPos, buffer<vec3>& newVel) {
+        if (!m_aabb.intersect(part)) {
+            std::cout << "return false : " << m_connectivity.size() << "\n";
             return false;
+        }
+        std::cout << m_connectivity.size() << "\n";
         if (isLeaf()) {
-            std::cout << "intersect" << std::endl;
+            std::cout << "\nintersect" << std::endl;
             SS aabb_sphere;
             computeSurroundingSphere(m_aabb, aabb_sphere.center, aabb_sphere.radius);
             //contact normal
-            vec3 n(normalize(part.c - aabb_sphere.center));
+            vec3 n(normalize(part.p - aabb_sphere.center));
             //position
-            part.p = aabb_sphere.center + (aabb_sphere.radius+ part.r)*n;
+            //part.p = aabb_sphere.center + (aabb_sphere.radius + part.r) * n;
+            newPos.push_back(aabb_sphere.center + (aabb_sphere.radius + part.r) * n);
             //velocity
             vec3 const vn = dot(part.v, n) * n;
             vec3 const vt = part.v - vn;
-            part.v = -0.95f * vn + 0.9 * vt;
+            //part.v = -0.95f * vn + 0.9 * vt;
+            newVel.push_back(-0.95f * vn + 0.9 * vt);
             return true;
         }
-        bool intersectLeft = m_left->intersect(part);
-        bool intersectRight = m_right->intersect(part);
+        bool intersectLeft = m_left->intersect(part, newPos, newVel);
+        bool intersectRight = m_right->intersect(part, newPos, newVel);
         return intersectLeft || intersectRight;
     }
 
@@ -404,7 +421,7 @@ private:
     vec3 m_velocity; // velocity
     vec3 m_color; // color
     float m_mass = 1.f; // mass
-    float m_sizeScale = 0.1f;
+    float m_sizeScale = 1.f;
 };
 
 void simulate(std::vector<model*>& particles, float dt);

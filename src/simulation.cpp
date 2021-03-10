@@ -229,7 +229,6 @@ void simulate(std::vector<particle_structure>& particles, float dt_true, std::ve
 			{
 				particle_structure& p1 = particles[k1];
 				particle_structure& p2 = particles[k2];
-
 				collision_sphere_sphere(p1.p,p1.v,p1.r, p2.p,p2.v,p2.r);
 			}
 		}
@@ -237,8 +236,18 @@ void simulate(std::vector<particle_structure>& particles, float dt_true, std::ve
 		for (size_t k = 0; k < N; k++)
 		{
 			for (int i = 0; i < objects.size(); i++)
-			{				
-				objects[i].BVHroot().intersect(particles[k]);
+			{
+				buffer<vec3> newPos, newVel;
+				if (objects[i].BVHroot().intersect(particles[k], newPos, newVel)) {
+					std::cout << newPos.size() << "\n";
+					vec3 pos, vel;
+					for (size_t j = 0; j < newPos.size(); j++) {
+						pos += newPos(j);
+						vel += newVel(j);
+					}
+					particles[k].p = pos / float(newPos.size());
+					particles[k].v = vel / float(newVel.size());
+				}
 			}
 		}
 

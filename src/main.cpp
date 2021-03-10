@@ -134,7 +134,7 @@ void emit_particle()
 	static buffer<vec3> const color_lut = {{1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1}};
 	if (timer.event && user.gui.add_sphere) {
 		float const theta = rand_interval(0, 2*pi);
-		vec3 const v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 4.0f);
+		vec3 const v;// = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 4.0f);
 		particle_structure particle;
 		particle.p = {0,0,0};
 		particle.r = 0.08f;
@@ -163,15 +163,17 @@ void initialize_data()
 	//sphere model
 	sphere = mesh_drawable(mesh_primitive_sphere());
 
-	//obstacle mesh	
+	//obstacle mesh
 	pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
+	std::cout << "min : " << pin.BVHroot().aabb().minCorner() << "max : " << pin.BVHroot().aabb().maxCorner() << std::endl;
+	std::cout << "min : " << pin.BVHroot().left()->aabb().minCorner() << "max : " << pin.BVHroot().left()->aabb().maxCorner() << std::endl;
+	std::cout << "min : " << pin.BVHroot().right()->aabb().minCorner() << "max : " << pin.BVHroot().right()->aabb().maxCorner() << std::endl;
 	pin.rotate(rot);
-	pin.translate(vec3(0, -2, -3));
-	pin.BVHroot() = BVHnode(&pin.modelMesh(), 1.f);
+	pin.translate(vec3(0.f, -2.f, -3.f));
+	pin.BVHroot() = BVHnode(&(pin.modelMesh()), 1.f);
 	objects.push_back(pin);
 	pin_drawable = mesh_drawable(pin.modelMesh());
-	std::cout << "min : " << pin.BVHroot().aabb().minCorner() << "max : " << pin.BVHroot().aabb().maxCorner() << std::endl;
-
+	
 
 	// Edges of the containing cube
 	//  Note: this data structure is set for display purpose - don't use it to compute some information on the cube - it would be un-necessarily complex
