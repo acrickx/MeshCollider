@@ -33,6 +33,8 @@ segments_drawable cube_wireframe;
 
 model object;
 mesh_drawable object_drawable;
+model pin;
+mesh_drawable pin_drawable;
 mesh_drawable sphere;
 rotation rot(vec3(1, 0, 0), pi / 2.f);
 
@@ -116,7 +118,6 @@ int main(int, char* argv[])
 void emit_object() {
 	static buffer<vec3> const color_lut = { {1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1} };
 	if (timer.event && user.gui.add_obj && objects.size() <= 1) {
-		std::cout << "new obj\n";
 		float const theta = rand_interval(0, 2*pi);
 		vec3 const v;// = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 8.0f);
 		model obj(object);
@@ -167,9 +168,6 @@ void initialize_data()
 
 	//obstacle mesh
 	object = model(mesh_load_file_obj("../MeshCollider/assets/canyon2.obj"));
-	std::cout << "min : " << object.BVHroot().aabb().minCorner() << "max : " << object.BVHroot().aabb().maxCorner() << std::endl;
-	std::cout << "min : " << object.BVHroot().left()->aabb().minCorner() << "max : " << object.BVHroot().left()->aabb().maxCorner() << std::endl;
-	std::cout << "min : " << object.BVHroot().right()->aabb().minCorner() << "max : " << object.BVHroot().right()->aabb().maxCorner() << std::endl;
 	//object.rotate(rot);
 	object.scale(0.002f);
 	object.translate(vec3(0.f, 0.f, -1.f));
@@ -177,6 +175,7 @@ void initialize_data()
 	objects.push_back(object);
 	object_drawable = mesh_drawable(object.modelMesh());
 	
+	pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
 
 	// Edges of the containing cube
 	//  Note: this data structure is set for display purpose - don't use it to compute some information on the cube - it would be un-necessarily complex

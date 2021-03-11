@@ -1,7 +1,6 @@
 #pragma once
 
 #include "vcl/vcl.hpp"
-//#include <limits>
 #include<algorithm>
 
 using namespace vcl;
@@ -55,27 +54,12 @@ public:
     {
         vec3 S = other.p; vec3 C1 = m_minCorner; vec3 C2 = m_maxCorner;
         float dist_squared = other.r * other.r;
-        /* assume C1 and C2 are element-wise sorted, if not, do that now */
-        if (S(0) < C1(0)) dist_squared -= (S(0) - C1(0)) * (S(0) - C1(0));
-        else if (S(0) > C2(0)) dist_squared -= (S(0) - C2(0)) * (S(0) - C2(0));
-        if (S(1) < C1(1)) dist_squared -= (S(1) - C1(1)) * (S(1) - C1(1));
-        else if (S(1) > C2(1)) dist_squared -= (S(1) - C2(1)) * (S(1) - C2(1));
-        if (S(2) < C1(2)) dist_squared -= (S(2) - C1(2)) * (S(2) - C1(2));
-        else if (S(2) > C2(2)) dist_squared -= (S(2) - C2(2)) * (S(2) - C2(2));
-        return dist_squared > -1e-5;
-
-        float dmin = 0;
-        vec3 C = other.p;
-
-        for (int i = 0; i < 3; i++) {
-            if (C[i] < m_minCorner[i]) dmin += sqrt(C[i] - m_minCorner[i]); 
-            else if (C[i] > m_maxCorner[i]) dmin += sqrt(C[i] - m_maxCorner[i]);
+        float dmin = 0.f;
+        for (int i = 0; i <= 2; i++) {
+            if (S(i) < C1(i)) dmin += (S(i) - C1(i)) * (S(i) - C1(i));
+            else if (S(i) > C2(i)) dmin += (S(i) - C2(i)) * (S(i) - C2(i));
         }
-        if (dmin <= powf(other.r, 2.f))
-        {            
-            return true;
-        }
-        else return false;
+        return dist_squared > dmin - 1e-5;
     }
 
     // intersection with plane
@@ -131,7 +115,6 @@ public:
     }
     inline BVHnode(buffer<uint3> connectivity, AABB aabb, const mesh* mod, const float sizeScale)
     {
-        //std::cout << "size : " << connectivity.size() << std::endl;
         //stop condition
         if (connectivity.size() <= 1)
         {
@@ -284,26 +267,42 @@ public:
         return intersectLeft || intersectRight;
     }
 
-    //intersect with sphere
+    //intersect with sphere (assumes the object is static)
     inline bool intersect(particle_structure& part, buffer<vec3> &newPos, buffer<vec3>& newVel) {
-        if (!m_aabb.intersect(part)) {
-            //std::cout << "return false : " << m_connectivity.size() << "\n";
+        if (!m_aabb.intersect(part))
             return false;
-        }
-        //std::cout << m_connectivity.size() << "\n";
         if (isLeaf()) {
-            //std::cout << "\nintersect" << std::endl;
-            SS aabb_sphere;
-            computeSurroundingSphere(m_aabb, aabb_sphere.center, aabb_sphere.radius);
-            //contact normal
-            vec3 n(normalize(part.p - aabb_sphere.center));
+            vec3 S = part.p; vec3 C1 = m_aabb.minCorner(); vec3 C2 = m_aabb.maxCorner();
+            float dmin = 0.f;
+            for (int i = 0; i <= 2; i++) {
+                if (S(i) < C1(i)) dmin += (S(i) - C1(i)) * (S(i) - C1(i));
+                else if (S(i) > C2(i)) dmin += (S(i) - C2(i)) * (S(i) - C2(i));
+            }
+            float dpen = part.r - sqrt(dmin);
+            const vec3& p1 = m_mesh->position[m_connectivity(0)(0)];
+            const vec3& p2 = m_mesh->position[m_connectivity(0)(1)];
+            const vec3& p3 = m_mesh->position[m_connectivity(0)(2)];
+            vec3 nTri = cross(p2 - p1, p3 - p1);
+            nTri /= norm(nTri);
+            vec3 baryTri = (p1 + p2 + p3) / 3.f;
+            if (dot(nTri, baryTri - part.p) > 0)
+                nTri = -nTri;
+            int dim;
+            if (std::abs(nTri(0)) >= std::max(std::abs(nTri(1)), std::abs(nTri(2))))
+                dim = 0;
+            else if (std::abs(nTri(1)) >= std::max(std::abs(nTri(0)), std::abs(nTri(2))))
+                dim = 1;
+            else
+                dim = 2;
             //position
-            //part.p = aabb_sphere.center + (aabb_sphere.radius + part.r) * n;
-            newPos.push_back(aabb_sphere.center + (aabb_sphere.radius + part.r) * n);
+            vec3 trans;
+            trans(dim) = dpen;
+            if (nTri(dim) < 0)
+                trans(dim) = -dpen;
+            newPos.push_back(part.p + trans);
             //velocity
-            vec3 const vn = dot(part.v, n) * n;
+            vec3 const vn = dot(part.v, nTri) * nTri;
             vec3 const vt = part.v - vn;
-            //part.v = -0.95f * vn + 0.9 * vt;
             newVel.push_back(-0.95f * vn + 0.9 * vt);
             return true;
         }
