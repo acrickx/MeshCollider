@@ -89,8 +89,8 @@ void collision_sphere_plane(vcl::vec3& p, vcl::vec3& v, float r, vcl::vec3 const
 
 
 
-// new
-void collision_obj_obj(model* obj1, model* obj2)
+// when k = 0, obj1 is the fixed object
+void collision_obj_obj(model* obj1, model* obj2, size_t k)
 {
 	float const epsilon = 1e-5f;
 	float const alpha = 0.95f;
@@ -129,9 +129,11 @@ void collision_obj_obj(model* obj1, model* obj2)
 				}
 			}
 		}
-		obj1->velocity() = newVel / float(tot);
+		if (k != 0) {
+			obj1->velocity() = newVel / float(tot);
+			obj1->updatePosition(obj1->position() + translationPos);
+		}
 		obj2->velocity() = newVelOther / float(tot);
-		obj1->updatePosition(obj1->position() + translationPos);
 		obj2->updatePosition(obj2->position() - translationPos);
 	}
 }
@@ -165,8 +167,8 @@ void collision_sphere_sphere(vcl::vec3& p1, vcl::vec3& v1, float r1, vcl::vec3& 
     }
 }
 
-// new
-void simulate(std::vector<model*>& objects, float dt_true) {
+// objects[0] is a statis object so it's treated differently
+void simulate(std::vector<model>& objects, float dt_true) {
 	vec3 const g = { 0,0,-9.81f };
 	size_t const N_substep = 10;
 	float const dt = dt_true / N_substep;
@@ -174,14 +176,12 @@ void simulate(std::vector<model*>& objects, float dt_true) {
 	for (size_t k_substep = 0; k_substep < N_substep; k_substep++)
 	{
 		size_t const N = objects.size();
-		for (size_t k = 0; k < N; k++)
+		for (size_t k = 1; k < N; k++)
 		{
-			model* obj = objects[k];
-
-			vec3 const f = obj->mass() * g;
-			obj->velocity() = (1 - 0.9f * dt) * obj->velocity() + dt * f;
-			const vec3 newPos = obj->position() + dt * obj->velocity();
-			obj->updatePosition(newPos);
+			model& obj = objects[k];
+			obj.velocity() = (1 - 0.9f * dt) * obj.velocity() + dt * obj.mass() * g;
+			const vec3 newPos = obj.position() + dt * obj.velocity();
+			obj.updatePosition(newPos);
 		}
 
 		// Collisions between objects (without spacial acceleration structure)
@@ -189,19 +189,19 @@ void simulate(std::vector<model*>& objects, float dt_true) {
 		{
 			for (size_t k2 = k1 + 1; k2 < N; k2++)
 			{
-				model* obj1 = objects[k1];
-				model* obj2 = objects[k2];
-				collision_obj_obj(obj1, obj2);
+				model& obj1 = objects[k1];
+				model& obj2 = objects[k2];
+				collision_obj_obj(&obj1, &obj2, k1);
 			}
 		}
 		// Collisions with cube
 		const std::vector<vec3> face_normal = { {0, 1,0}, { 1,0,0}, {0,0, 1}, {0,-1,0}, {-1,0,0}, {0,0,-1} };
 		const std::vector<vec3> face_position = { {0,-1,0}, {-1,0,0}, {0,0,-1}, {0, 1,0}, { 1,0,0}, {0,0, 1} };
 		const size_t N_face = face_normal.size();
-		for (size_t k = 0; k < N; ++k) {
-			model* obj = objects[k];
+		for (size_t k = 1; k < N; ++k) {
+			model& obj = objects[k];
 			for (size_t k_face = 0; k_face < N_face; ++k_face)
-				collision_obj_plane(obj, face_normal[k_face], face_position[k_face]);
+				collision_obj_plane(&obj, face_normal[k_face], face_position[k_face]);
 		}
 	}
 }
