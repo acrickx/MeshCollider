@@ -239,7 +239,7 @@ void simulate(std::vector<particle_structure>& particles, float dt_true, std::ve
 			{
 				buffer<vec3> newPos, newVel;
 				if (objects[i].BVHroot().intersect(particles[k], newPos, newVel)) {
-					std::cout << newPos.size() << "\n";
+					//std::cout << newPos.size() << "\n";
 					vec3 pos, vel;
 					for (size_t j = 0; j < newPos.size(); j++) {
 						pos += newPos(j);

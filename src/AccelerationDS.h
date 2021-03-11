@@ -110,11 +110,13 @@ struct SS {
 };
 
 class BVHnode {
+    using BVHptr = std::shared_ptr<BVHnode>;
+    typedef std::shared_ptr<BVHnode> BVHptr;
 private:
     //std::shared_ptr<BVHnode> m_left=nullptr;
     //std::shared_ptr<BVHnode> m_right=nullptr;
-    BVHnode *m_left = nullptr;
-    BVHnode *m_right = nullptr;
+    BVHptr m_left = nullptr;
+    BVHptr m_right = nullptr;
     AABB m_aabb;
     buffer<uint3> m_connectivity;
     const mesh* m_mesh = nullptr;
@@ -214,8 +216,8 @@ public:
             }
             //compute AABB
             AABB aabbLeft(minLeft, maxLeft, sizeScale), aabbRight(minRight, maxRight, sizeScale);
-            m_left = new BVHnode(connectivityLeft, aabbLeft, mod, sizeScale);
-            m_right = new BVHnode(connectivityRight, aabbRight, mod, sizeScale);       
+            m_left = BVHptr(new BVHnode(connectivityLeft, aabbLeft, mod, sizeScale));
+            m_right = BVHptr(new BVHnode(connectivityRight, aabbRight, mod, sizeScale));       
         }
     }
 
@@ -285,12 +287,12 @@ public:
     //intersect with sphere
     inline bool intersect(particle_structure& part, buffer<vec3> &newPos, buffer<vec3>& newVel) {
         if (!m_aabb.intersect(part)) {
-            std::cout << "return false : " << m_connectivity.size() << "\n";
+            //std::cout << "return false : " << m_connectivity.size() << "\n";
             return false;
         }
-        std::cout << m_connectivity.size() << "\n";
+        //std::cout << m_connectivity.size() << "\n";
         if (isLeaf()) {
-            std::cout << "\nintersect" << std::endl;
+            //std::cout << "\nintersect" << std::endl;
             SS aabb_sphere;
             computeSurroundingSphere(m_aabb, aabb_sphere.center, aabb_sphere.radius);
             //contact normal
@@ -341,10 +343,10 @@ public:
     inline bool isLeaf() const { return (m_connectivity.size() == 1); }    
     inline const AABB& aabb() const { return m_aabb; }
     inline AABB& aabb() { return m_aabb; }
-    inline const BVHnode* left() const { return m_left; }
-    inline const BVHnode* right() const { return m_right; }
-    inline BVHnode* left() { return m_left; }
-    inline BVHnode* right() { return m_right; }
+    inline const BVHptr left() const { return m_left; }
+    inline const BVHptr right() const { return m_right; }
+    inline BVHptr left() { return m_left; }
+    inline BVHptr right() { return m_right; }
     inline buffer<uint3>& connectivity() { return m_connectivity; }
     inline const buffer<uint3>& connectivity() const { return m_connectivity; }
 };

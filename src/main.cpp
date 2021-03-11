@@ -31,10 +31,11 @@ scene_environment scene;
 
 segments_drawable cube_wireframe;
 
-model pin;
-mesh_drawable pin_drawable;
+model object;
+mesh_drawable object_drawable;
 mesh_drawable sphere;
-rotation rot(vec3(1, 0, 0), pi / 4.f);
+rotation rot(vec3(1, 0, 0), pi / 2.f);
+
 
 timer_event_periodic timer(3.f);
 std::vector<particle_structure> particles;
@@ -118,7 +119,7 @@ void emit_object() {
 		std::cout << "new obj\n";
 		float const theta = rand_interval(0, 2*pi);
 		vec3 const v;// = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 8.0f);
-		model obj(pin);
+		model obj(object);
 		obj.position() = { 0, 0, 0 };
 		obj.color() = color_lut[int(rand_interval() * color_lut.size())];
 		obj.velocity() = v;
@@ -134,10 +135,11 @@ void emit_particle()
 	static buffer<vec3> const color_lut = {{1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1}};
 	if (timer.event && user.gui.add_sphere) {
 		float const theta = rand_interval(0, 2*pi);
-		vec3 const v;// = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 4.0f);
+		vec3 const pos = vec3(rand_interval(-0.5f,0.5f), rand_interval(-0.5f, 0.5f), rand_interval(-0.5f, 0.5f));
+		vec3 const v;//= vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 4.0f);
 		particle_structure particle;
-		particle.p = {0,0,0};
-		particle.r = 0.08f;
+		particle.p = pos;
+		particle.r = 0.02f;
 		particle.c = color_lut[int(rand_interval()*color_lut.size())];
 		particle.v = v;
 		particle.m = 1.0f;
@@ -164,15 +166,16 @@ void initialize_data()
 	sphere = mesh_drawable(mesh_primitive_sphere());
 
 	//obstacle mesh
-	pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
-	std::cout << "min : " << pin.BVHroot().aabb().minCorner() << "max : " << pin.BVHroot().aabb().maxCorner() << std::endl;
-	std::cout << "min : " << pin.BVHroot().left()->aabb().minCorner() << "max : " << pin.BVHroot().left()->aabb().maxCorner() << std::endl;
-	std::cout << "min : " << pin.BVHroot().right()->aabb().minCorner() << "max : " << pin.BVHroot().right()->aabb().maxCorner() << std::endl;
-	pin.rotate(rot);
-	pin.translate(vec3(0.f, -2.f, -3.f));
-	pin.BVHroot() = BVHnode(&(pin.modelMesh()), 1.f);
-	objects.push_back(pin);
-	pin_drawable = mesh_drawable(pin.modelMesh());
+	object = model(mesh_load_file_obj("../MeshCollider/assets/canyon2.obj"));
+	std::cout << "min : " << object.BVHroot().aabb().minCorner() << "max : " << object.BVHroot().aabb().maxCorner() << std::endl;
+	std::cout << "min : " << object.BVHroot().left()->aabb().minCorner() << "max : " << object.BVHroot().left()->aabb().maxCorner() << std::endl;
+	std::cout << "min : " << object.BVHroot().right()->aabb().minCorner() << "max : " << object.BVHroot().right()->aabb().maxCorner() << std::endl;
+	//object.rotate(rot);
+	object.scale(0.002f);
+	object.translate(vec3(0.f, 0.f, -1.f));
+	object.BVHroot() = BVHnode(&(object.modelMesh()), 1.f);
+	objects.push_back(object);
+	object_drawable = mesh_drawable(object.modelMesh());
 	
 
 	// Edges of the containing cube
@@ -195,7 +198,7 @@ void display_scene()
 
 		draw(sphere, scene);
 	}
-	draw(pin_drawable, scene);
+	draw(object_drawable, scene);
 	draw(cube_wireframe, scene);
 }
 
@@ -206,11 +209,11 @@ void display_scene_obj()
 	for (size_t k = 0; k < N; k++)
 	{
 		model obj = objects[k];
-		pin_drawable.shading.color = obj.color();
-		pin_drawable.transform.translate = obj.position();
-		pin_drawable.transform.scale = obj.sizeScale();
+		object_drawable.shading.color = obj.color();
+		object_drawable.transform.translate = obj.position();
+		object_drawable.transform.scale = obj.sizeScale();
 
-		draw(pin_drawable, scene);
+		draw(object_drawable, scene);
 	}
 	draw(cube_wireframe, scene);
 }
