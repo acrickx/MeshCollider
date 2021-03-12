@@ -41,7 +41,7 @@ rotation rot(vec3(1, 0, 0), pi / 2.f);
 
 timer_event_periodic timer(3.f);
 std::vector<particle_structure> particles;
-std::vector<model> objects; // new
+std::vector<model*> objects;
 
 void mouse_move_callback(GLFWwindow* window, double xpos, double ypos);
 void window_size_callback(GLFWwindow* window, int width, int height);
@@ -50,6 +50,7 @@ void initialize_data();
 void display_scene();
 void display_scene_obj();
 void display_interface();
+void display_interface_obj();
 void emit_particle();
 void emit_object(const model& object);
 
@@ -95,13 +96,13 @@ int main(int, char* argv[])
 
 		/*emit_particle();
 		display_interface();
-		float const dt = 0.01f * timer.scale;
+		float const dt = 0.005f * timer.scale;
 		simulate(particles, dt, objects);
 		display_scene();*/
 
 		emit_object(pin);
-		display_interface();
-		float const dt = 0.01f * timer.scale;
+		display_interface_obj();
+		float const dt = 0.005f * timer.scale;
 		simulate(objects, dt);
 		display_scene_obj();
 
@@ -119,16 +120,16 @@ int main(int, char* argv[])
 }
 
 // new
-void emit_object(const model& object) {
+void emit_object(const model& mod) {
 	static buffer<vec3> const color_lut = { {1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1} };
 	if (timer.event && user.gui.add_obj) {
 		float const theta = rand_interval(0, 2*pi);
 		vec3 const v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 8.0f);
-		model obj(object);
-		obj.position() = { 0, 0, 0 };
-		obj.color() = color_lut[int(rand_interval() * color_lut.size())];
-		obj.velocity() = v;
-		obj.mass() = 1.0f;
+		model* obj = new model(mod);
+		obj->position() = { 0, 0, 0 };
+		obj->color() = color_lut[int(rand_interval() * color_lut.size())];
+		obj->velocity() = v;
+		obj->mass() = 1.0f;
 		objects.push_back(obj);
 	}
 }
@@ -176,7 +177,7 @@ void initialize_data()
 	object.scale(0.002f);
 	object.translate(vec3(0.f, 0.f, -1.f));
 	object.BVHroot() = BVHnode(&(object.modelMesh()), 1.f);
-	objects.push_back(object);
+	objects.push_back(&object);
 	object_drawable = mesh_drawable(object.modelMesh());
 	
 	pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
@@ -214,10 +215,10 @@ void display_scene_obj()
 	size_t const N = objects.size();
 	for (size_t k = 1; k < N; k++)
 	{
-		model const& obj = objects[k];
-		pin_drawable.shading.color = obj.color();
-		pin_drawable.transform.translate = obj.position();
-		pin_drawable.transform.scale = obj.sizeScale();
+		const model *obj = objects[k];
+		pin_drawable.shading.color = obj->color();
+		pin_drawable.transform.translate = obj->position();
+		pin_drawable.transform.scale = obj->sizeScale();
 		draw(pin_drawable, scene);
 	}
 	draw(object_drawable, scene);
@@ -229,7 +230,14 @@ void display_interface()
 	ImGui::Checkbox("Frame", &user.gui.display_frame);
 	ImGui::SliderFloat("Time scale", &timer.scale, 0.05f, 2.0f, "%.2f s");
     ImGui::SliderFloat("Interval create object", &timer.event_period, 0.05f, 2.0f, "%.2f s");
-    //ImGui::Checkbox("Add sphere", &user.gui.add_sphere);
+    ImGui::Checkbox("Add sphere", &user.gui.add_sphere);
+}
+
+void display_interface_obj()
+{
+	ImGui::Checkbox("Frame", &user.gui.display_frame);
+	ImGui::SliderFloat("Time scale", &timer.scale, 0.05f, 2.0f, "%.2f s");
+	ImGui::SliderFloat("Interval create object", &timer.event_period, 0.05f, 2.0f, "%.2f s");
 	ImGui::Checkbox("Add object", &user.gui.add_obj);
 }
 

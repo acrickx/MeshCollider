@@ -23,7 +23,7 @@ void collision_obj_plane(model* obj, vcl::vec3 const& n, vcl::vec3 const& p0)
 
 				float dot1 = dot(p0 - p1, n), dot2 = dot(p0 - p2, n), dot3 = dot(p0 - p3, n);
 				bool update = true;
-				float distPen = 0;
+				float distPen = 0.f;
 				if (dot1 > -epsilon) {
 					if (dot2 < 0 && dot3 < 0)
 						distPen = std::abs(dot1);
@@ -60,11 +60,9 @@ void collision_obj_plane(model* obj, vcl::vec3 const& n, vcl::vec3 const& p0)
 					vec3 const vt = obj->velocity() - vn;
 					newVel += -alpha_n * vn + alpha_t * vt;
 					tot++;
-					//std::cout << p1 << " " << p2 << " " << p3 << "\n";
 				}
 			}
 		}
-		//obj->updatePosition(obj->position() + translationPos / float(tot));
 		obj->updatePosition(obj->position() + translationPos);
 		obj->velocity() = newVel / float(tot);
 	}
@@ -88,44 +86,77 @@ void collision_sphere_plane(vcl::vec3& p, vcl::vec3& v, float r, vcl::vec3 const
 }
 
 
-
 // when k = 0, obj1 is the fixed object
 void collision_obj_obj(model* obj1, model* obj2, size_t k)
 {
 	float const epsilon = 1e-5f;
 	float const alpha = 0.95f;
-	buffer<SS> triangleSS;
-	buffer<SS> triangleSSOther;
-	if (obj1->BVHroot().intersect(obj2->BVHroot(), triangleSS, triangleSSOther)) {
+	float const alpha_n = 0.95f;
+	float const alpha_t = 0.90f;
+	buffer<AABB> triangleAABB;
+	buffer<AABB> otherAABB;
+	buffer<uint3> triangles;
+	if (obj1->BVHroot().intersect(obj2->BVHroot(), triangleAABB, otherAABB, triangles)) {
 		vec3 translationPos;
 		vec3 newVel, newVelOther;
 		bool finished = false;
 		int tot = 0;
 		while (!finished) {
 			finished = true;
-			for (size_t i = 0; i < triangleSS.size(); i++) {
-				vec3 p1 = triangleSS(i).center + translationPos;
-				vec3 p2 = triangleSSOther(i).center - translationPos;
-				float r1 = triangleSS(i).radius;
-				float r2 = triangleSSOther(i).radius;
-				vec3 const p12 = p1 - p2;
-				float const d12 = norm(p12);
-				if (d12 < r1 + r2) {
-					finished = false;
-					vec3 const u12 = p12 / d12;
-					float const collision_depth = r1 + r2 - d12;
-					translationPos += (collision_depth / 2.0f + epsilon) * u12;
-					tot++;
-					if (norm(obj1->velocity() - obj1->velocity()) > 0.2f) {
-						float const j = dot(newVel - newVelOther, u12);
-						newVel -= alpha * j * u12;
-						newVelOther += alpha * j * u12;
-					}
-					else // Contact
-					{
-						newVel /= 1.2f;
-						newVelOther /= 1.2f;
-					}
+			for (size_t i = 0; i < triangleAABB.size(); i++) {
+				const AABB& aabb1 = triangleAABB(i);
+				const AABB& aabb2 = otherAABB(i);
+				vec3 min1 = aabb1.minCorner();
+				vec3 max1 = aabb1.maxCorner();
+				if (k != 0) {
+					min1 += translationPos;
+					max1 += translationPos;
+				}
+				vec3 min2 = aabb2.minCorner() - translationPos;
+				vec3 max2 = aabb2.maxCorner() - translationPos;
+				if (max1(0) < min2(0) || max1(1) < min2(1) || max1(2) < min2(2) ||
+					min1(0) > max2(0) || min1(1) > max2(1) || min1(2) > max2(2))
+					continue;
+				tot++;
+				// update position
+				vec3 center1 = (min1 + max1) / 2.f;
+				vec3 center2 = (min2 + max2) / 2.f;
+				vec3 dPen;
+				for (int dim = 0; dim <= 2; dim++)
+					dPen(dim) = std::min(max1(dim) - min2(dim), max2(dim) - min1(dim)) + epsilon;
+				if (k != 0)
+					dPen /= 2.f;
+				int minDim;
+				if (dPen(0) <= std::min(dPen(1), dPen(2))) minDim = 0;
+				else if (dPen(1) <= std::min(dPen(0), dPen(2))) minDim = 1;
+				else minDim = 2;
+				if (center1(minDim) < center2(minDim))
+					translationPos(minDim) -= dPen(minDim);
+				else
+					translationPos(minDim) += dPen(minDim);
+				// update velocity
+				const vec3& p1 = obj1->modelMesh().position(triangles(i)(0));
+				const vec3& p2 = obj1->modelMesh().position(triangles(i)(1));
+				const vec3& p3 = obj1->modelMesh().position(triangles(i)(2));
+				vec3 nTri = cross(p2 - p1, p3 - p1);
+				nTri /= norm(nTri);
+				vec3 baryTri = (p1 + p2 + p3) / 3.f;
+				if (dot(nTri, baryTri - center2) > 0)
+					nTri = -nTri;
+				vec3 u12 = (center2 - center1) / norm(center2 - center1);
+				if (k == 0) { // deal as a plane collision
+					vec3 const vn = dot(obj2->velocity(), nTri) * nTri;
+					vec3 const vt = obj2->velocity() - vn;
+					newVelOther += alpha_t * vt - alpha_n * vn;
+				}
+				else if (norm(obj1->velocity() - obj2->velocity()) > 0.2f) { // add dt prop
+					float const j = dot(newVelOther - newVel, u12);
+					newVel -= alpha * j * u12;
+					newVelOther += alpha * j * u12;
+				}
+				else { // Contact
+					newVel /= 1.2f;
+					newVelOther /= 1.2f;
 				}
 			}
 		}
@@ -168,7 +199,7 @@ void collision_sphere_sphere(vcl::vec3& p1, vcl::vec3& v1, float r1, vcl::vec3& 
 }
 
 // objects[0] is a statis object so it's treated differently
-void simulate(std::vector<model>& objects, float dt_true) {
+void simulate(std::vector<model*>& objects, float dt_true) {
 	vec3 const g = { 0,0,-9.81f };
 	size_t const N_substep = 10;
 	float const dt = dt_true / N_substep;
@@ -178,10 +209,10 @@ void simulate(std::vector<model>& objects, float dt_true) {
 		size_t const N = objects.size();
 		for (size_t k = 1; k < N; k++)
 		{
-			model& obj = objects[k];
-			obj.velocity() = (1 - 0.9f * dt) * obj.velocity() + dt * obj.mass() * g;
-			const vec3 newPos = obj.position() + dt * obj.velocity();
-			obj.updatePosition(newPos);
+			model* obj = objects[k];
+			obj->velocity() = (1 - 0.9f * dt) * obj->velocity() + dt * obj->mass() * g;
+			const vec3 newPos = obj->position() + dt * obj->velocity();
+			obj->updatePosition(newPos);
 		}
 
 		// Collisions between objects (without spacial acceleration structure)
@@ -189,9 +220,9 @@ void simulate(std::vector<model>& objects, float dt_true) {
 		{
 			for (size_t k2 = k1 + 1; k2 < N; k2++)
 			{
-				model& obj1 = objects[k1];
-				model& obj2 = objects[k2];
-				collision_obj_obj(&obj1, &obj2, k1);
+				model* obj1 = objects[k1];
+				model* obj2 = objects[k2];
+				collision_obj_obj(obj1, obj2, k1);
 			}
 		}
 		// Collisions with cube
@@ -199,14 +230,14 @@ void simulate(std::vector<model>& objects, float dt_true) {
 		const std::vector<vec3> face_position = { {0,-1,0}, {-1,0,0}, {0,0,-1}, {0, 1,0}, { 1,0,0}, {0,0, 1} };
 		const size_t N_face = face_normal.size();
 		for (size_t k = 1; k < N; ++k) {
-			model& obj = objects[k];
+			model* obj = objects[k];
 			for (size_t k_face = 0; k_face < N_face; ++k_face)
-				collision_obj_plane(&obj, face_normal[k_face], face_position[k_face]);
+				collision_obj_plane(obj, face_normal[k_face], face_position[k_face]);
 		}
 	}
 }
 
-void simulate(std::vector<particle_structure>& particles, float dt_true, std::vector<model>& objects)
+void simulate(std::vector<particle_structure>& particles, float dt_true, std::vector<model*>& objects)
 {
 	vec3 const g = {0,0,-9.81f};
 	size_t const N_substep = 10;
@@ -238,8 +269,7 @@ void simulate(std::vector<particle_structure>& particles, float dt_true, std::ve
 			for (int i = 0; i < objects.size(); i++)
 			{
 				buffer<vec3> newPos, newVel;
-				if (objects[i].BVHroot().intersect(particles[k], newPos, newVel)) {
-					//std::cout << newPos.size() << "\n";
+				if (objects[i]->BVHroot().intersect(particles[k], newPos, newVel)) {
 					vec3 pos, vel;
 					for (size_t j = 0; j < newPos.size(); j++) {
 						pos += newPos(j);

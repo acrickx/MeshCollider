@@ -210,46 +210,37 @@ public:
     }
 
     // intersection between 2 objects
-    inline bool intersect (const BVHnode& other, buffer<SS>& triangleSS, buffer<SS>& triangleSSOther)
+    inline bool intersect (const BVHnode& other, buffer<AABB>& triangleAABB, buffer<AABB>& otherAABB, buffer<uint3>& tri)
     {
         if (!m_aabb.intersect(other.aabb()))
             return false;
         if (isLeaf() && other.isLeaf()) {
-            vec3 centerSphere, centerOther;
-            float radius, radiusOther;
-            computeSurroundingSphere(m_aabb, centerSphere, radius);
-            computeSurroundingSphere(other.m_aabb, centerOther, radiusOther);
-            if (norm(centerSphere - centerOther) <= radius + radiusOther) {
-                SS ssThis, ssOther;
-                ssThis.center = centerSphere; ssOther.center = centerOther;
-                ssThis.radius = radius; ssOther.radius = radiusOther;
-                triangleSS.push_back(ssThis);
-                triangleSSOther.push_back(ssOther);
-                return true;
-            }
-            return false;
+            tri.push_back(m_connectivity(0));
+            triangleAABB.push_back(m_aabb);
+            otherAABB.push_back(other.aabb());
+            return true;
         }
         if (!isLeaf())
         {
             if (!other.isLeaf())
             {
-                bool ll = m_left->intersect(*(other.left()), triangleSS, triangleSSOther);
-                bool lr = m_left->intersect(*(other.right()), triangleSS, triangleSSOther);
-                bool rr = m_right->intersect(*(other.right()), triangleSS, triangleSSOther);
-                bool rl = m_right->intersect(*(other.left()), triangleSS, triangleSSOther);
+                bool ll = m_left->intersect(*(other.left()), triangleAABB, otherAABB, tri);
+                bool lr = m_left->intersect(*(other.right()), triangleAABB, otherAABB, tri);
+                bool rr = m_right->intersect(*(other.right()), triangleAABB, otherAABB, tri);
+                bool rl = m_right->intersect(*(other.left()), triangleAABB, otherAABB, tri);
                 return ll || lr || rr || rl;
             }
             else
             {
-                bool lo = m_left->intersect(other, triangleSS, triangleSSOther);
-                bool ro = m_right->intersect(other, triangleSS, triangleSSOther);
+                bool lo = m_left->intersect(other, triangleAABB, otherAABB, tri);
+                bool ro = m_right->intersect(other, triangleAABB, otherAABB, tri);
                 return lo || ro;
             }
         }
         else
         {
-            bool tl = intersect(*(other.left()), triangleSS, triangleSSOther);
-            bool tr = intersect(*(other.right()), triangleSS, triangleSSOther);
+            bool tl = intersect(*(other.left()), triangleAABB, otherAABB, tri);
+            bool tr = intersect(*(other.right()), triangleAABB, otherAABB, tri);
             return tl || tr;
         }
     }
@@ -389,10 +380,9 @@ public:
 
     inline void translate(const vec3& translation) {
         for (size_t i = 0; i < m_mesh.position.size(); i++) {
-            m_mesh.position(i) = m_mesh.position(i)+translation;
+            m_mesh.position(i) = m_mesh.position(i) + translation;
         }
     }
-
 
     inline mesh& modelMesh() { return m_mesh; }
     inline const mesh& modelMesh() const { return m_mesh; }
