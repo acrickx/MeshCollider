@@ -120,7 +120,7 @@ public:
         {
             m_connectivity = connectivity;
             m_aabb = aabb;
-            m_mesh = mod;            
+            m_mesh = mod;
         }
         else
         {
@@ -129,10 +129,10 @@ public:
             m_mesh = mod;
             //determine in which dimension to split 
             vec3 diff = aabb.maxCorner() - aabb.minCorner();
-            int dimension=-1;
+            int dimension = -1;
             if (diff(0) >= std::max(diff(1), diff(2))) dimension = 0;
             else if (diff(1) >= std::max(diff(0), diff(2))) dimension = 1;
-            else if (diff(2) >= std::max(diff(1), diff(0))) dimension = 2;   
+            else if (diff(2) >= std::max(diff(1), diff(0))) dimension = 2;
             std::vector<float> barycenters;
             //compute triangle barycenter
             for (int i = 0; i < connectivity.size(); i++)
@@ -153,7 +153,7 @@ public:
             vec3 maxRight(MIN_FLOAT, MIN_FLOAT, MIN_FLOAT), maxLeft(MIN_FLOAT, MIN_FLOAT, MIN_FLOAT);
             bool addLeft = false;
             for (int i = 0; i < connectivity.size(); i++)
-            {            
+            {
                 const vec3& pt0 = mod->position(connectivity(i)[0]);
                 const vec3& pt1 = mod->position(connectivity(i)[1]);
                 const vec3& pt2 = mod->position(connectivity(i)[2]);
@@ -183,8 +183,8 @@ public:
                     connectivityLeft.push_back(connectivity(i));
                     for (int j = 0; j < 3; j++)
                     {
-                        minLeft(j) = std::min(minLeft(j),std::min(pt2(j),std::min(pt0(j), pt1(j))));   
-                        maxLeft(j) = std::max(maxLeft(j),std::max(pt2(j),std::max(pt0(j), pt1(j))));   
+                        minLeft(j) = std::min(minLeft(j), std::min(pt2(j), std::min(pt0(j), pt1(j))));
+                        maxLeft(j) = std::max(maxLeft(j), std::max(pt2(j), std::max(pt0(j), pt1(j))));
                     }
                 }
                 else
@@ -200,7 +200,7 @@ public:
             //compute AABB
             AABB aabbLeft(minLeft, maxLeft, sizeScale), aabbRight(minRight, maxRight, sizeScale);
             m_left = BVHptr(new BVHnode(connectivityLeft, aabbLeft, mod, sizeScale));
-            m_right = BVHptr(new BVHnode(connectivityRight, aabbRight, mod, sizeScale));       
+            m_right = BVHptr(new BVHnode(connectivityRight, aabbRight, mod, sizeScale));
         }
     }
 
@@ -210,7 +210,7 @@ public:
     }
 
     // intersection between 2 objects
-    inline bool intersect (const BVHnode& other, buffer<AABB>& triangleAABB, buffer<AABB>& otherAABB,
+    inline bool intersect(const BVHnode& other, buffer<AABB>& triangleAABB, buffer<AABB>& otherAABB,
         buffer<uint3>& tri, buffer<uint3>& triOther)
     {
         if (!m_aabb.intersect(other.aabb()))
@@ -261,7 +261,7 @@ public:
     }
 
     //intersect with sphere (assumes the object is static)
-    inline bool intersect(particle_structure& part, buffer<vec3> &newPos, buffer<vec3>& newVt, buffer<vec3>& newVn) {
+    inline bool intersect(particle_structure& part, buffer<vec3>& newPos, buffer<vec3>& newVt, buffer<vec3>& newVn) {
         if (!m_aabb.intersect(part))
             return false;
         if (isLeaf()) {
@@ -333,7 +333,7 @@ public:
         }
     }
 
-    inline bool isLeaf() const { return (m_connectivity.size() == 1); }    
+    inline bool isLeaf() const { return (m_connectivity.size() == 1); }
     inline const AABB& aabb() const { return m_aabb; }
     inline AABB& aabb() { return m_aabb; }
     inline const BVHptr left() const { return m_left; }
@@ -349,7 +349,7 @@ class model {
 public:
     inline model() {}
 
-    inline model(mesh initMesh) {        
+    inline model(mesh initMesh) {
         m_mesh = initMesh;
         m_BVHroot = BVHnode(&m_mesh, m_sizeScale);
     }

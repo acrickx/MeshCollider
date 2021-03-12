@@ -17,7 +17,7 @@ struct user_interaction_parameters {
 	mesh_drawable global_frame;
 	gui_parameters gui;
 	bool cursor_on_gui;
-	
+
 };
 user_interaction_parameters user;
 
@@ -66,11 +66,11 @@ int main(int, char* argv[])
 	imgui_init(window);
 	glfwSetCursorPosCallback(window, mouse_move_callback);
 	glfwSetWindowSizeCallback(window, window_size_callback);
-	
-	std::cout<<"Initialize data ..."<<std::endl;
+
+	std::cout << "Initialize data ..." << std::endl;
 	initialize_data();
 
-	std::cout<<"Start animation loop ..."<<std::endl;
+	std::cout << "Start animation loop ..." << std::endl;
 	user.fps_record.start();
 	timer.start();
 	glEnable(GL_DEPTH_TEST);
@@ -79,20 +79,20 @@ int main(int, char* argv[])
 		scene.light = scene.camera.position();
 		user.fps_record.update();
 		timer.update();
-		
+
 		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		imgui_create_frame();
-		if(user.fps_record.event) {
-			std::string const title = "VCL Display - "+str(user.fps_record.fps)+" fps";
+		if (user.fps_record.event) {
+			std::string const title = "VCL Display - " + str(user.fps_record.fps) + " fps";
 			glfwSetWindowTitle(window, title.c_str());
 		}
 
-		ImGui::Begin("GUI",NULL,ImGuiWindowFlags_AlwaysAutoResize);
+		ImGui::Begin("GUI", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 		user.cursor_on_gui = ImGui::IsAnyWindowFocused();
 
-		if(user.gui.display_frame) draw(user.global_frame, scene);
+		if (user.gui.display_frame) draw(user.global_frame, scene);
 
 		emit_particle();
 		display_interface();
@@ -123,7 +123,7 @@ int main(int, char* argv[])
 void emit_object(const model& mod) {
 	static buffer<vec3> const color_lut = { {1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1} };
 	if (timer.event && user.gui.add_obj) {
-		float const theta = rand_interval(0, 2*pi);
+		float const theta = rand_interval(0, 2 * pi);
 		vec3 const v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 5.f);
 		model* obj = new model(mod);
 		obj->position() = { 0, 0, 0 };
@@ -138,35 +138,35 @@ void emit_particle()
 {
 	// Emit particle with random velocity
 	// Assume first that all particles have the same radius and mass
-	static buffer<vec3> const color_lut = {{1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1}};
+	static buffer<vec3> const color_lut = { {1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1} };
 	if (timer.event && user.gui.add_sphere) {
-		float const theta = rand_interval(0, 2*pi);
-		vec3 const pos = vec3(rand_interval(-0.5f,0.5f), rand_interval(-0.5f, 0.5f), rand_interval(-0.5f, 0.5f));
+		float const theta = rand_interval(0, 2 * pi);
+		vec3 const pos = vec3(rand_interval(-0.5f, 0.5f), rand_interval(-0.5f, 0.5f), rand_interval(-0.5f, 0.5f));
 		vec3 const v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 4.0f);
 		particle_structure particle;
 		particle.p = pos;
 		particle.r = 0.02f;
-		particle.c = color_lut[int(rand_interval()*color_lut.size())];
+		particle.c = color_lut[int(rand_interval() * color_lut.size())];
 		particle.v = v;
 		particle.m = 1.0f;
 		particles.push_back(particle);
-	}	
+	}
 }
 
 void initialize_data()
 {
 	GLuint const shader_mesh = opengl_create_shader_program(opengl_shader_preset("mesh_vertex"), opengl_shader_preset("mesh_fragment"));
 	GLuint const shader_uniform_color = opengl_create_shader_program(opengl_shader_preset("single_color_vertex"), opengl_shader_preset("single_color_fragment"));
-	GLuint const texture_white = opengl_texture_to_gpu(image_raw{1,1,image_color_type::rgba,{255,255,255,255}});
+	GLuint const texture_white = opengl_texture_to_gpu(image_raw{ 1,1,image_color_type::rgba,{255,255,255,255} });
 	mesh_drawable::default_shader = shader_mesh;
 	mesh_drawable::default_texture = texture_white;
 	curve_drawable::default_shader = shader_uniform_color;
 	segments_drawable::default_shader = shader_uniform_color;
-	
+
 	user.global_frame = mesh_drawable(mesh_primitive_frame());
 	user.gui.display_frame = false;
 	scene.camera.distance_to_center = 2.5f;
-	scene.camera.look_at({4,3,2}, {0,0,0}, {0,0,1});
+	scene.camera.look_at({ 4,3,2 }, { 0,0,0 }, { 0,0,1 });
 
 	//sphere model
 	sphere = mesh_drawable(mesh_primitive_sphere());
@@ -179,7 +179,7 @@ void initialize_data()
 	object.BVHroot() = BVHnode(&(object.modelMesh()), 1.f);
 	objects.push_back(&object);
 	object_drawable = mesh_drawable(object.modelMesh());
-	
+
 	pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
 	pin.rotate(rot);
 	pin.scale(0.05f);
@@ -188,16 +188,16 @@ void initialize_data()
 
 	// Edges of the containing cube
 	//  Note: this data structure is set for display purpose - don't use it to compute some information on the cube - it would be un-necessarily complex
-	buffer<vec3> cube_wireframe_data = {{-1,-1,-1},{1,-1,-1}, {1,-1,-1},{1,1,-1}, {1,1,-1},{-1,1,-1}, {-1,1,-1},{-1,-1,-1},
+	buffer<vec3> cube_wireframe_data = { {-1,-1,-1},{1,-1,-1}, {1,-1,-1},{1,1,-1}, {1,1,-1},{-1,1,-1}, {-1,1,-1},{-1,-1,-1},
 		{-1,-1,1} ,{1,-1,1},  {1,-1,1}, {1,1,1},  {1,1,1}, {-1,1,1},  {-1,1,1}, {-1,-1,1},
-		{-1,-1,-1},{-1,-1,1}, {1,-1,-1},{1,-1,1}, {1,1,-1},{1,1,1},   {-1,1,-1},{-1,1,1}};
+		{-1,-1,-1},{-1,-1,1}, {1,-1,-1},{1,-1,1}, {1,1,-1},{1,1,1},   {-1,1,-1},{-1,1,1} };
 	cube_wireframe = segments_drawable(cube_wireframe_data);
 }
 
 void display_scene()
 {
 	size_t const N = particles.size();
-	for(size_t k=0; k<N; ++k)
+	for (size_t k = 0; k < N; ++k)
 	{
 		particle_structure const& particle = particles[k];
 		sphere.shading.color = particle.c;
@@ -215,7 +215,7 @@ void display_scene_obj()
 	size_t const N = objects.size();
 	for (size_t k = 1; k < N; k++)
 	{
-		const model *obj = objects[k];
+		const model* obj = objects[k];
 		pin_drawable.shading.color = obj->color();
 		pin_drawable.transform.translate = obj->position();
 		pin_drawable.transform.scale = obj->sizeScale();
@@ -229,8 +229,8 @@ void display_interface()
 {
 	ImGui::Checkbox("Frame", &user.gui.display_frame);
 	ImGui::SliderFloat("Time scale", &timer.scale, 0.05f, 2.0f, "%.2f s");
-    ImGui::SliderFloat("Interval create object", &timer.event_period, 0.05f, 2.0f, "%.2f s");
-    ImGui::Checkbox("Add sphere", &user.gui.add_sphere);
+	ImGui::SliderFloat("Interval create object", &timer.event_period, 0.05f, 2.0f, "%.2f s");
+	ImGui::Checkbox("Add sphere", &user.gui.add_sphere);
 }
 
 void display_interface_obj()
@@ -242,11 +242,11 @@ void display_interface_obj()
 }
 
 
-void window_size_callback(GLFWwindow* , int width, int height)
+void window_size_callback(GLFWwindow*, int width, int height)
 {
 	glViewport(0, 0, width, height);
 	float const aspect = width / static_cast<float>(height);
-	scene.projection = projection_perspective(50.0f*pi/180.0f, aspect, 0.1f, 100.0f);
+	scene.projection = projection_perspective(50.0f * pi / 180.0f, aspect, 0.1f, 100.0f);
 }
 
 
@@ -257,13 +257,13 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
 	glfw_state state = glfw_current_state(window);
 
 	auto& camera = scene.camera;
-	if(!user.cursor_on_gui){
-		if(state.mouse_click_left && !state.key_ctrl)
+	if (!user.cursor_on_gui) {
+		if (state.mouse_click_left && !state.key_ctrl)
 			scene.camera.manipulator_rotate_trackball(p0, p1);
-		if(state.mouse_click_left && state.key_ctrl)
-			camera.manipulator_translate_in_plane(p1-p0);
-		if(state.mouse_click_right)
-			camera.manipulator_scale_distance_to_center( (p1-p0).y );
+		if (state.mouse_click_left && state.key_ctrl)
+			camera.manipulator_translate_in_plane(p1 - p0);
+		if (state.mouse_click_right)
+			camera.manipulator_scale_distance_to_center((p1 - p0).y);
 	}
 
 	user.mouse_prev = p1;
