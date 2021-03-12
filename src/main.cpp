@@ -94,17 +94,17 @@ int main(int, char* argv[])
 
 		if(user.gui.display_frame) draw(user.global_frame, scene);
 
-		/*emit_particle();
+		emit_particle();
 		display_interface();
 		float const dt = 0.005f * timer.scale;
 		simulate(particles, dt, objects);
-		display_scene();*/
+		display_scene();
 
-		emit_object(pin);
+		/*emit_object(pin);
 		display_interface_obj();
 		float const dt = 0.005f * timer.scale;
 		simulate(objects, dt);
-		display_scene_obj();
+		display_scene_obj();*/
 
 		ImGui::End();
 		imgui_render_frame(window);
@@ -124,7 +124,7 @@ void emit_object(const model& mod) {
 	static buffer<vec3> const color_lut = { {1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1} };
 	if (timer.event && user.gui.add_obj) {
 		float const theta = rand_interval(0, 2*pi);
-		vec3 const v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 8.0f);
+		vec3 const v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 5.f);
 		model* obj = new model(mod);
 		obj->position() = { 0, 0, 0 };
 		obj->color() = color_lut[int(rand_interval() * color_lut.size())];

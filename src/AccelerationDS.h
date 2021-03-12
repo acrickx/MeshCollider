@@ -261,7 +261,7 @@ public:
     }
 
     //intersect with sphere (assumes the object is static)
-    inline bool intersect(particle_structure& part, buffer<vec3> &newPos, buffer<vec3>& newVel) {
+    inline bool intersect(particle_structure& part, buffer<vec3> &newPos, buffer<vec3>& newVt, buffer<vec3>& newVn) {
         if (!m_aabb.intersect(part))
             return false;
         if (isLeaf()) {
@@ -296,11 +296,12 @@ public:
             //velocity
             vec3 const vn = dot(part.v, nTri) * nTri;
             vec3 const vt = part.v - vn;
-            newVel.push_back(-0.95f * vn + 0.9 * vt);
+            newVt.push_back(vt);
+            newVn.push_back(vn);
             return true;
         }
-        bool intersectLeft = m_left->intersect(part, newPos, newVel);
-        bool intersectRight = m_right->intersect(part, newPos, newVel);
+        bool intersectLeft = m_left->intersect(part, newPos, newVt, newVn);
+        bool intersectRight = m_right->intersect(part, newPos, newVt, newVn);
         return intersectLeft || intersectRight;
     }
 

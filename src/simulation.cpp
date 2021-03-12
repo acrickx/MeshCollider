@@ -267,6 +267,15 @@ void simulate(std::vector<particle_structure>& particles, float dt_true, std::ve
 	vec3 const g = {0,0,-9.81f};
 	size_t const N_substep = 10;
 	float const dt = dt_true/N_substep;
+	// for grid
+	float confidenceFactor = 2.f;
+	vec3 minCube(-1.f, -1.f, -1.f);
+	vec3 maxCube(1.f, 1.f, 1.f);
+	float xCube = maxCube(0) - minCube(0), yCube = maxCube(1) - minCube(1), zCube = maxCube(2) - minCube(2);
+	size_t nx = int(xCube / (confidenceFactor * 2.f * particles[0].r));
+	size_t ny = int(yCube / (confidenceFactor * 2.f * particles[0].r));
+	size_t nz = int(zCube / (confidenceFactor * 2.f * particles[0].r));
+
 	for(size_t k_substep=0; k_substep<N_substep; ++k_substep)
 	{
 		size_t const N = particles.size();
@@ -274,34 +283,102 @@ void simulate(std::vector<particle_structure>& particles, float dt_true, std::ve
 		{
 			particle_structure& particle = particles[k];
 			vec3 const f = particle.m * g;
-			particle.v = (1-0.9f*dt)*particle.v + dt*f;
-			particle.p = particle.p + dt*particle.v;
+			particle.v = (1 - 0.9f * dt) * particle.v + dt * f;
+			particle.p = particle.p + dt * particle.v;
 		}
 
 		// Collisions between spheres
-		for(size_t k1=0; k1<N; ++k1)
-		{
-			for(size_t k2=k1+1; k2<N; ++k2)
-			{
-				particle_structure& p1 = particles[k1];
-				particle_structure& p2 = particles[k2];
-				collision_sphere_sphere(p1.p,p1.v,p1.r, p2.p,p2.v,p2.r);
+		if (particles.size() > 20) { // grid acceleration data structure
+			std::vector<std::vector<size_t>> grid(nx * ny * nz);
+			for (size_t i = 0; i < N; i++) {
+				particle_structure& part = particles[i];
+				int x = int(((part.p(0) - minCube(0)) / xCube) / (xCube / nx));
+				int y = int(((part.p(1) - minCube(1)) / yCube) / (yCube / ny));
+				int z = int(((part.p(2) - minCube(2)) / zCube) / (zCube / nz));
+				grid[x * ny * nz + y * nz + z].push_back(i);
+			}
+			for (int x = 0; x < nx - 1; x++) {
+				for (int y = 0; y < ny - 1; y++) {
+					for (int z = 0; z < nz - 1; z++) {
+						std::vector<size_t>& partIndices = grid[x * ny * nz + y * nz + z];
+						// collision within the same cell
+						for (size_t k1 = 0; k1 < partIndices.size(); k1++) {
+							for (size_t k2 = k1 + 1; k2 < partIndices.size(); k2++) {
+								particle_structure& p1 = particles[partIndices[k1]];
+								particle_structure& p2 = particles[partIndices[k2]];
+								collision_sphere_sphere(p1.p, p1.v, p1.r, p2.p, p2.v, p2.r);
+							}
+						}
+						// collision with neighbour cells
+						std::vector<size_t>& xNext = grid[(x + 1) * ny * nz + y * nz + z];
+						std::vector<size_t>& yNext = grid[x * ny * nz + (y + 1) * nz + z];
+						std::vector<size_t>& zNext = grid[x * ny * nz + y * nz + z + 1];
+						std::vector<size_t>& xyNext = grid[(x + 1) * ny * nz + (y + 1) * nz + z];
+						std::vector<size_t>& xzNext = grid[(x + 1) * ny * nz + y * nz + z + 1];
+						std::vector<size_t>& yzNext = grid[x * ny * nz + (y + 1) * nz + z + 1];
+						std::vector<size_t>& xyzNext = grid[(x + 1) * ny * nz + (y + 1) * nz + z + 1];
+						for (size_t k1 = 0; k1 < partIndices.size(); k1++) {
+							particle_structure& p1 = particles[partIndices[k1]];
+							for (size_t k2 = 0; k2 < xNext.size(); k2++) {
+								particle_structure& p2 = particles[xNext[k2]];
+								collision_sphere_sphere(p1.p, p1.v, p1.r, p2.p, p2.v, p2.r);
+							}
+							for (size_t k2 = 0; k2 < yNext.size(); k2++) {
+								particle_structure& p2 = particles[yNext[k2]];
+								collision_sphere_sphere(p1.p, p1.v, p1.r, p2.p, p2.v, p2.r);
+							}
+							for (size_t k2 = 0; k2 < zNext.size(); k2++) {
+								particle_structure& p2 = particles[zNext[k2]];
+								collision_sphere_sphere(p1.p, p1.v, p1.r, p2.p, p2.v, p2.r);
+							}
+							for (size_t k2 = 0; k2 < xyNext.size(); k2++) {
+								particle_structure& p2 = particles[xyNext[k2]];
+								collision_sphere_sphere(p1.p, p1.v, p1.r, p2.p, p2.v, p2.r);
+							}
+							for (size_t k2 = 0; k2 < xzNext.size(); k2++) {
+								particle_structure& p2 = particles[xzNext[k2]];
+								collision_sphere_sphere(p1.p, p1.v, p1.r, p2.p, p2.v, p2.r);
+							}
+							for (size_t k2 = 0; k2 < yzNext.size(); k2++) {
+								particle_structure& p2 = particles[yzNext[k2]];
+								collision_sphere_sphere(p1.p, p1.v, p1.r, p2.p, p2.v, p2.r);
+							}
+							for (size_t k2 = 0; k2 < xyzNext.size(); k2++) {
+								particle_structure& p2 = particles[xyzNext[k2]];
+								collision_sphere_sphere(p1.p, p1.v, p1.r, p2.p, p2.v, p2.r);
+							}
+						}
+					}
+				}
 			}
 		}
+		else {
+			for (size_t k1 = 0; k1 < N; ++k1)
+			{
+				for (size_t k2 = k1 + 1; k2 < N; ++k2)
+				{
+					particle_structure& p1 = particles[k1];
+					particle_structure& p2 = particles[k2];
+					collision_sphere_sphere(p1.p, p1.v, p1.r, p2.p, p2.v, p2.r);
+				}
+			}
+		}
+
 		//Collisions with model
 		for (size_t k = 0; k < N; k++)
 		{
 			for (int i = 0; i < objects.size(); i++)
 			{
-				buffer<vec3> newPos, newVel;
-				if (objects[i]->BVHroot().intersect(particles[k], newPos, newVel)) {
-					vec3 pos, vel;
+				buffer<vec3> newPos, newVt, newVn;
+				if (objects[i]->BVHroot().intersect(particles[k], newPos, newVt, newVn)) {
+					vec3 pos, vt, vn;
 					for (size_t j = 0; j < newPos.size(); j++) {
 						pos += newPos(j);
-						vel += newVel(j);
+						vt += newVt(j);
+						vn += newVn(j);
 					}
 					particles[k].p = pos / float(newPos.size());
-					particles[k].v = vel / float(newVel.size());
+					particles[k].v = (-0.95f * vn + 0.9 * vt) / float(newVt.size());
 				}
 			}
 		}
