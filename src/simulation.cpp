@@ -91,14 +91,15 @@ void collision_obj_obj(model* obj1, model* obj2, size_t k)
 {
 	float const epsilon = 1e-5f;
 	float const alpha = 0.95f;
-	float const alpha_n = 0.95f;
-	float const alpha_t = 0.90f;
+	float const alpha_n = 0.85f;
+	float const alpha_t = 0.80f;
 	buffer<AABB> triangleAABB;
 	buffer<AABB> otherAABB;
 	buffer<uint3> triangles;
-	if (obj1->BVHroot().intersect(obj2->BVHroot(), triangleAABB, otherAABB, triangles)) {
+	buffer<uint3> otherTriangles;
+	if (obj1->BVHroot().intersect(obj2->BVHroot(), triangleAABB, otherAABB, triangles, otherTriangles)) {
 		vec3 translationPos;
-		vec3 newVel, newVelOther;
+		vec3 newVel, newVelOther, newVn, newVt;
 		bool finished = false;
 		int tot = 0;
 		while (!finished) {
@@ -124,35 +125,54 @@ void collision_obj_obj(model* obj1, model* obj2, size_t k)
 				vec3 dPen;
 				for (int dim = 0; dim <= 2; dim++)
 					dPen(dim) = std::min(max1(dim) - min2(dim), max2(dim) - min1(dim)) + epsilon;
-				if (k != 0)
-					dPen /= 2.f;
+				if (k != 0) dPen /= 2.f;
 				int minDim;
 				if (dPen(0) <= std::min(dPen(1), dPen(2))) minDim = 0;
 				else if (dPen(1) <= std::min(dPen(0), dPen(2))) minDim = 1;
 				else minDim = 2;
-				if (center1(minDim) < center2(minDim))
-					translationPos(minDim) -= dPen(minDim);
-				else
-					translationPos(minDim) += dPen(minDim);
+				// translate the AABBs in at least one dimension such that they do not intersect
+				// if they overlap just a little in several dimensions, translate also in these dimensions
+				for (int j = 0; j <= 2; j++) {
+					float meanLength = (max1(j) - min1(j) + max2(j) - min2(j)) / 2.f;
+					if (j == minDim || dPen(j) < meanLength / 10.f) {
+						if (center1(j) < center2(j)) translationPos(j) -= dPen(j);
+						else translationPos(j) += dPen(j);
+					}
+				}
 				// update velocity
 				const vec3& p1 = obj1->modelMesh().position(triangles(i)(0));
 				const vec3& p2 = obj1->modelMesh().position(triangles(i)(1));
 				const vec3& p3 = obj1->modelMesh().position(triangles(i)(2));
 				vec3 nTri = cross(p2 - p1, p3 - p1);
 				nTri /= norm(nTri);
-				vec3 baryTri = (p1 + p2 + p3) / 3.f;
-				if (dot(nTri, baryTri - center2) > 0)
+				const vec3& p1o = obj2->modelMesh().position(otherTriangles(i)(0));
+				const vec3& p2o = obj2->modelMesh().position(otherTriangles(i)(1));
+				const vec3& p3o = obj2->modelMesh().position(otherTriangles(i)(2));
+				vec3 nTriOther = cross(p2o - p1o, p3o - p1o);
+				nTriOther /= norm(nTriOther);
+				const vec3 baryTri = (p1 + p2 + p3) / 3.f;
+				const vec3 baryTriOther = (p1o + p2o + p3o) / 3.f;
+				if (dot(nTri, nTriOther) > 0) {
+					if (norm(baryTri + nTri - (baryTriOther + nTriOther)) > norm(baryTri - nTri - (baryTriOther + nTriOther)))
+						nTri = -nTri;
+					else
+						nTriOther = -nTriOther;
+				}
+				else if(norm(baryTri + nTri - (baryTriOther + nTriOther)) > norm(baryTri - nTri - (baryTriOther - nTriOther))){
 					nTri = -nTri;
-				vec3 u12 = (center2 - center1) / norm(center2 - center1);
+					nTriOther = -nTriOther;
+				}
 				if (k == 0) { // deal as a plane collision
 					vec3 const vn = dot(obj2->velocity(), nTri) * nTri;
 					vec3 const vt = obj2->velocity() - vn;
-					newVelOther += alpha_t * vt - alpha_n * vn;
+					newVn += vn;
+					newVt += vt;
 				}
 				else if (norm(obj1->velocity() - obj2->velocity()) > 0.2f) { // add dt prop
-					float const j = dot(newVelOther - newVel, u12);
-					newVel -= alpha * j * u12;
-					newVelOther += alpha * j * u12;
+					float const j = dot(newVelOther - newVel, nTriOther);
+					float const jo = dot(newVel - newVelOther, nTri);
+					newVel -= alpha * j * nTriOther;
+					newVelOther -= alpha * jo * nTri;
 				}
 				else { // Contact
 					newVel /= 1.2f;
@@ -163,9 +183,14 @@ void collision_obj_obj(model* obj1, model* obj2, size_t k)
 		if (k != 0) {
 			obj1->velocity() = newVel / float(tot);
 			obj1->updatePosition(obj1->position() + translationPos);
+			obj2->velocity() = newVelOther / float(tot);
+			obj2->updatePosition(obj2->position() - translationPos);
 		}
-		obj2->velocity() = newVelOther / float(tot);
-		obj2->updatePosition(obj2->position() - translationPos);
+		else {
+			newVelOther = alpha_t * newVt - alpha_n * newVn;
+			obj2->velocity() = newVelOther / float(tot);
+			obj2->updatePosition(obj2->position() - translationPos);
+		}
 	}
 }
 

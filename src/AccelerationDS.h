@@ -210,12 +210,14 @@ public:
     }
 
     // intersection between 2 objects
-    inline bool intersect (const BVHnode& other, buffer<AABB>& triangleAABB, buffer<AABB>& otherAABB, buffer<uint3>& tri)
+    inline bool intersect (const BVHnode& other, buffer<AABB>& triangleAABB, buffer<AABB>& otherAABB,
+        buffer<uint3>& tri, buffer<uint3>& triOther)
     {
         if (!m_aabb.intersect(other.aabb()))
             return false;
         if (isLeaf() && other.isLeaf()) {
             tri.push_back(m_connectivity(0));
+            triOther.push_back(other.connectivity()(0));
             triangleAABB.push_back(m_aabb);
             otherAABB.push_back(other.aabb());
             return true;
@@ -224,23 +226,23 @@ public:
         {
             if (!other.isLeaf())
             {
-                bool ll = m_left->intersect(*(other.left()), triangleAABB, otherAABB, tri);
-                bool lr = m_left->intersect(*(other.right()), triangleAABB, otherAABB, tri);
-                bool rr = m_right->intersect(*(other.right()), triangleAABB, otherAABB, tri);
-                bool rl = m_right->intersect(*(other.left()), triangleAABB, otherAABB, tri);
+                bool ll = m_left->intersect(*(other.left()), triangleAABB, otherAABB, tri, triOther);
+                bool lr = m_left->intersect(*(other.right()), triangleAABB, otherAABB, tri, triOther);
+                bool rr = m_right->intersect(*(other.right()), triangleAABB, otherAABB, tri, triOther);
+                bool rl = m_right->intersect(*(other.left()), triangleAABB, otherAABB, tri, triOther);
                 return ll || lr || rr || rl;
             }
             else
             {
-                bool lo = m_left->intersect(other, triangleAABB, otherAABB, tri);
-                bool ro = m_right->intersect(other, triangleAABB, otherAABB, tri);
+                bool lo = m_left->intersect(other, triangleAABB, otherAABB, tri, triOther);
+                bool ro = m_right->intersect(other, triangleAABB, otherAABB, tri, triOther);
                 return lo || ro;
             }
         }
         else
         {
-            bool tl = intersect(*(other.left()), triangleAABB, otherAABB, tri);
-            bool tr = intersect(*(other.right()), triangleAABB, otherAABB, tri);
+            bool tl = intersect(*(other.left()), triangleAABB, otherAABB, tri, triOther);
+            bool tr = intersect(*(other.right()), triangleAABB, otherAABB, tri, triOther);
             return tl || tr;
         }
     }
