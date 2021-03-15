@@ -134,7 +134,7 @@ void collision_obj_obj(model* obj1, model* obj2, size_t k)
 				// if they overlap just a little in several dimensions, translate also in these dimensions
 				for (int j = 0; j <= 2; j++) {
 					float meanLength = (max1(j) - min1(j) + max2(j) - min2(j)) / 2.f;
-					if (j == minDim || dPen(j) < meanLength / 10.f) {
+					if (j == minDim || dPen(j) < meanLength / 8.f) {
 						if (center1(j) < center2(j)) translationPos(j) -= dPen(j);
 						else translationPos(j) += dPen(j);
 					}

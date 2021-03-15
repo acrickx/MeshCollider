@@ -63,7 +63,7 @@ int main(int, char* argv[])
 {
 	std::cout << "Run " << argv[0] << std::endl;
 
-	int scenario = 3;
+	int scenario = 2;
 
 	if (scenario == 3)
 		user.gui.add_obj = false;
@@ -186,7 +186,7 @@ void emit_particle(int scenario)
 		else if (scenario == 1) {
 			pos = vec3(rand_interval(-0.97f, 0.97f), rand_interval(-0.97f, 0.97f), rand_interval(0.9f, 0.97f));
 			if (particles.size() == 0)
-				rad = 0.2f;
+				rad = 0.02f;
 			else
 				rad = rand_interval(0.01f, 0.02f);
 			mass = rad * 50;
