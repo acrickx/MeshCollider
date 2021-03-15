@@ -128,7 +128,8 @@ int main(int, char* argv[])
 			//auto start = std::chrono::high_resolution_clock::now();
 			emit_particle(scenario);
 			float const dt = 0.005f * timer.scale;
-			simulate(objects, dt, user.gui.reverse_gravity);
+			if(user.gui.reverse_gravity)
+				simulate(objects, dt, user.gui.reverse_gravity);
 			simulate(particles, dt, objects);
 			/*if (particles.size() != nbPart && particles.size() % 30 == 2 && particles.size() < 315) {
 				nbPart = particles.size();
@@ -195,7 +196,7 @@ void emit_particle(int scenario)
 		else if (scenario == 3) {
 			float const theta = rand_interval(0, 2 * pi);
 			v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 4.0f);
-			rad = 0.06f;
+			rad = 0.04f;
 			mass = 1.f;
 		}
 		particle_structure particle;
@@ -270,7 +271,7 @@ void initialize_data(int scenario)
 		//xwing mesh		
 		model* xwing = new model(mesh_load_file_obj("../MeshCollider/assets/xwing.obj"));
 		xwing->rotate(rot);
-		xwing->scale(0.17f);
+		xwing->scale(0.13f);
 		xwing->translate(vec3(0.f, 0.2f, -0.75f));
 		xwing->BVHroot() = BVHnode(&(xwing->modelMesh()), 1.f);
 		objects.push_back(xwing);
@@ -334,7 +335,7 @@ void display_scene_both()
 		//xwing_drawable.shading.color = obj->color();
 		xwing_drawable.transform.translate = obj->position();
 		xwing_drawable.transform.scale = obj->sizeScale();
-		draw(pin_drawable, scene);
+		draw(xwing_drawable, scene);
 	}
 	draw(cube_wireframe, scene);
 }

@@ -417,5 +417,3 @@ private:
     float m_mass = 1.f; // mass
     float m_sizeScale = 1.f;
 };
-
-void simulate(std::vector<model*>& particles, float dt);
