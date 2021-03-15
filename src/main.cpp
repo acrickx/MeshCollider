@@ -38,6 +38,7 @@ mesh_drawable object_drawable;
 model pin;
 mesh_drawable pin_drawable;
 mesh_drawable sphere;
+mesh_drawable xwing_drawable;
 rotation rot(vec3(1, 0, 0), pi / 2.f);
 
 
@@ -63,7 +64,7 @@ int main(int, char* argv[])
 {
 	std::cout << "Run " << argv[0] << std::endl;
 
-	int scenario = 2;
+	int scenario = 3;
 
 	if (scenario == 3)
 		user.gui.add_obj = false;
@@ -225,6 +226,23 @@ void initialize_data(int scenario)
 	//sphere model
 	sphere = mesh_drawable(mesh_primitive_sphere());
 
+	//canyon mesh
+	//object = model(mesh_load_file_obj("../MeshCollider/assets/canyon2.obj"));		
+	//object.scale(0.002f);
+	//object.translate(vec3(0.f, 0.f, -1.f));
+	//object.BVHroot() = BVHnode(&(object.modelMesh()), 1.f);
+	//objects.push_back(&object);
+	//object_drawable = mesh_drawable(object.modelMesh());
+	//GLuint texture_id = opengl_texture_to_gpu(image_load_png("../MeshCollider/assets/diffuse.png"));
+	//object_drawable.texture = texture_id;
+
+	//tyra mesh
+	//object = model(mesh_load_file_obj("../MeshCollider/assets/tyra.obj"));
+	//object.rotate(rot);	
+	////object.translate(vec3(0.f, 0.f, -1.f));
+	//object.BVHroot() = BVHnode(&(object.modelMesh()), 1.f);
+	//objects.push_back(&object);
+
 	//obstacle mesh
 	if (scenario == 0 || scenario == 1 || scenario == 2) {
 		object = model(mesh_load_file_obj("../MeshCollider/assets/canyon2.obj"));
@@ -233,6 +251,8 @@ void initialize_data(int scenario)
 		object.BVHroot() = BVHnode(&(object.modelMesh()), 1.f);
 		objects.push_back(&object);
 		object_drawable = mesh_drawable(object.modelMesh());
+		GLuint texture_id = opengl_texture_to_gpu(image_load_png("../MeshCollider/assets/diffuse.png"));
+		object_drawable.texture = texture_id;
 	}
 
 	if (scenario == 2 || scenario == 3) {
@@ -241,15 +261,20 @@ void initialize_data(int scenario)
 		pin.scale(0.05f);
 		pin.BVHroot() = BVHnode(&(pin.modelMesh()), 1.f);
 		pin_drawable = mesh_drawable(pin.modelMesh());
-	}
+	}	
 
 	if (scenario == 3) {
 		model* obj = new model(pin);
 		obj->updatePosition(vec3(1000.f, -1000.f, -1000.f));
 		objects.push_back(obj);
-		model* obj2 = new model(pin); // change to X-wing
-		obj2->updatePosition(vec3(0.f, 0.f, -1.f));
-		objects.push_back(obj2);
+		//xwing mesh		
+		model* xwing = new model(mesh_load_file_obj("../MeshCollider/assets/xwing.obj"));
+		xwing->rotate(rot);
+		xwing->scale(0.17f);
+		xwing->translate(vec3(0.f, 0.2f, -0.75f));
+		xwing->BVHroot() = BVHnode(&(xwing->modelMesh()), 1.f);
+		objects.push_back(xwing);
+		xwing_drawable = mesh_drawable(xwing->modelMesh());
 	}
 
 	// Edges of the containing cube
@@ -306,9 +331,9 @@ void display_scene_both()
 	for (size_t k = 0; k < N_obj; k++)
 	{
 		const model* obj = objects[k];
-		pin_drawable.shading.color = obj->color();
-		pin_drawable.transform.translate = obj->position();
-		pin_drawable.transform.scale = obj->sizeScale();
+		//xwing_drawable.shading.color = obj->color();
+		xwing_drawable.transform.translate = obj->position();
+		xwing_drawable.transform.scale = obj->sizeScale();
 		draw(pin_drawable, scene);
 	}
 	draw(cube_wireframe, scene);
