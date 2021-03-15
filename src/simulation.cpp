@@ -7,7 +7,7 @@ void collision_obj_plane(model* obj, vcl::vec3 const& n, vcl::vec3 const& p0)
 {
 	float const epsilon = 1e-5f;
 	float const alpha_n = 0.85f;  // attenuation normal
-	float const alpha_t = 0.80f;  // attenuation tangential
+	float const alpha_t = 1.f;  // attenuation tangential
 	buffer<uint3*> triangles;
 	if (obj->BVHroot().intersect(n, p0, triangles, obj->position(), obj->sizeScale())) {
 		bool finished = false;
@@ -92,7 +92,7 @@ void collision_obj_obj(model* obj1, model* obj2, size_t k)
 	float const epsilon = 1e-5f;
 	float const alpha = 0.95f;
 	float const alpha_n = 0.85f;
-	float const alpha_t = 0.80f;
+	float const alpha_t = 0.8f;
 	buffer<AABB> triangleAABB;
 	buffer<AABB> otherAABB;
 	buffer<uint3> triangles;
@@ -134,7 +134,7 @@ void collision_obj_obj(model* obj1, model* obj2, size_t k)
 				// if they overlap just a little in several dimensions, translate also in these dimensions
 				for (int j = 0; j <= 2; j++) {
 					float meanLength = (max1(j) - min1(j) + max2(j) - min2(j)) / 2.f;
-					if (j == minDim || dPen(j) < meanLength / 8.f) {
+					if (j == minDim || dPen(j) < meanLength / 9.f) {
 						if (center1(j) < center2(j)) translationPos(j) -= dPen(j);
 						else translationPos(j) += dPen(j);
 					}
@@ -168,7 +168,7 @@ void collision_obj_obj(model* obj1, model* obj2, size_t k)
 					newVn += vn;
 					newVt += vt;
 				}
-				else if (norm(obj1->velocity() - obj2->velocity()) > 0.2f) { // add dt prop
+				else if (norm(obj1->velocity() - obj2->velocity()) > 0.1f) { // add dt prop
 					float const j = dot(newVelOther - newVel, nTriOther);
 					float const jo = dot(newVel - newVelOther, nTri);
 					newVel -= alpha * j * nTriOther;
@@ -376,14 +376,14 @@ void simulate(std::vector<particle_structure>& particles, float dt_true, std::ve
 			{
 				buffer<vec3> newPos, newVt, newVn;
 				if (objects[i]->BVHroot().intersect(particles[k], newPos, newVt, newVn)) {
-					vec3 pos, vt, vn;
+					vec3 POS, VN, VT;
 					for (size_t j = 0; j < newPos.size(); j++) {
-						pos += newPos(j);
-						vt += newVt(j);
-						vn += newVn(j);
+						POS += newPos(j);
+						VN += newVn(j);
+						VT += newVt(j);
 					}
-					particles[k].p = pos / float(newPos.size());
-					particles[k].v = (-0.95f * vn + 0.9 * vt) / float(newVt.size());
+					particles[k].p = POS / float(newPos.size());
+					particles[k].v = (-0.85f * VN + 1.f * VT) / float(newPos.size());
 				}
 			}
 		}

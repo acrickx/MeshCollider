@@ -66,6 +66,7 @@ int main(int, char* argv[])
 
 	int scenario = 3;
 
+	bool simu_xwing = false;
 	if (scenario == 3)
 		user.gui.add_obj = false;
 	size_t nbPart = 0; // for execution time
@@ -128,8 +129,10 @@ int main(int, char* argv[])
 			//auto start = std::chrono::high_resolution_clock::now();
 			emit_particle(scenario);
 			float const dt = 0.005f * timer.scale;
-			if(user.gui.reverse_gravity)
+			if (user.gui.reverse_gravity || simu_xwing) {
+				simu_xwing = true;
 				simulate(objects, dt, user.gui.reverse_gravity);
+			}
 			simulate(particles, dt, objects);
 			/*if (particles.size() != nbPart && particles.size() % 30 == 2 && particles.size() < 315) {
 				nbPart = particles.size();
@@ -196,7 +199,7 @@ void emit_particle(int scenario)
 		else if (scenario == 3) {
 			float const theta = rand_interval(0, 2 * pi);
 			v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 4.0f);
-			rad = 0.04f;
+			rad = 0.08f;
 			mass = 1.f;
 		}
 		particle_structure particle;
@@ -259,7 +262,7 @@ void initialize_data(int scenario)
 	if (scenario == 2 || scenario == 3) {
 		pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
 		pin.rotate(rot);
-		pin.scale(0.05f);
+		pin.scale(0.04f);
 		pin.BVHroot() = BVHnode(&(pin.modelMesh()), 1.f);
 		pin_drawable = mesh_drawable(pin.modelMesh());
 	}	
