@@ -1,5 +1,6 @@
 #include "vcl/vcl.hpp"
 #include <iostream>
+#include <chrono>
 
 #include "simulation.hpp"
 
@@ -9,6 +10,7 @@ struct gui_parameters {
 	bool display_frame = true;
 	bool add_sphere = true;
 	bool add_obj = true;
+	bool reverse_gravity = false;
 };
 
 struct user_interaction_parameters {
@@ -40,24 +42,32 @@ rotation rot(vec3(1, 0, 0), pi / 2.f);
 
 
 timer_event_periodic timer(3.f);
+//timer_event_periodic timer(0.01f);
 std::vector<particle_structure> particles;
 std::vector<model*> objects;
 
 void mouse_move_callback(GLFWwindow* window, double xpos, double ypos);
 void window_size_callback(GLFWwindow* window, int width, int height);
 
-void initialize_data();
+void initialize_data(int scenario);
 void display_scene();
 void display_scene_obj();
+void display_scene_both();
 void display_interface();
 void display_interface_obj();
-void emit_particle();
-void emit_object(const model& object);
+void display_interface_both();
+void emit_particle(int scenario);
+void emit_object(const model& object, int scenario);
 
 int main(int, char* argv[])
 {
 	std::cout << "Run " << argv[0] << std::endl;
 
+	int scenario = 3;
+
+	if (scenario == 3)
+		user.gui.add_obj = false;
+	size_t nbPart = 0; // for execution time
 	int const width = 1280, height = 1024;
 	GLFWwindow* window = create_window(width, height);
 	window_size_callback(window, width, height);
@@ -68,7 +78,7 @@ int main(int, char* argv[])
 	glfwSetWindowSizeCallback(window, window_size_callback);
 
 	std::cout << "Initialize data ..." << std::endl;
-	initialize_data();
+	initialize_data(scenario);
 
 	std::cout << "Start animation loop ..." << std::endl;
 	user.fps_record.start();
@@ -91,20 +101,44 @@ int main(int, char* argv[])
 
 		ImGui::Begin("GUI", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 		user.cursor_on_gui = ImGui::IsAnyWindowFocused();
-
 		if (user.gui.display_frame) draw(user.global_frame, scene);
 
-		emit_particle();
-		display_interface();
-		float const dt = 0.005f * timer.scale;
-		simulate(particles, dt, objects);
-		display_scene();
+		// 0 : balls emitted in the canyon
+		// 1 : rain in the canyon
+		if (scenario == 0 || scenario == 1) {
+			emit_particle(scenario);
+			display_interface();
+			float const dt = 0.005f * timer.scale;
+			simulate(particles, dt, objects);
+			display_scene();
+		}
 
-		/*emit_object(pin);
-		display_interface_obj();
-		float const dt = 0.005f * timer.scale;
-		simulate(objects, dt);
-		display_scene_obj();*/
+		// 2 : pins in the canyon
+		if (scenario == 2) {
+			emit_object(pin, scenario);
+			display_interface_obj();
+			float const dt = 0.005f * timer.scale;
+			simulate(objects, dt, false);
+			display_scene_obj();
+		}
+
+		// 3 : object rising in a pool of balls
+		if (scenario == 3) {
+			//auto start = std::chrono::high_resolution_clock::now();
+			emit_particle(scenario);
+			float const dt = 0.005f * timer.scale;
+			simulate(objects, dt, user.gui.reverse_gravity);
+			simulate(particles, dt, objects);
+			/*if (particles.size() != nbPart && particles.size() % 30 == 2 && particles.size() < 315) {
+				nbPart = particles.size();
+				auto stop = std::chrono::high_resolution_clock::now();
+				auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+				std::cout << "nb spheres : " << particles.size() << " ";
+				std::cout << "Execution time : " << duration.count() << " microseconds." << std::endl << std::endl;
+			}*/
+			display_scene_both();
+			display_interface_both();
+		}
 
 		ImGui::End();
 		imgui_render_frame(window);
@@ -119,8 +153,7 @@ int main(int, char* argv[])
 	return 0;
 }
 
-// new
-void emit_object(const model& mod) {
+void emit_object(const model& mod, int scenario) {
 	static buffer<vec3> const color_lut = { {1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1} };
 	if (timer.event && user.gui.add_obj) {
 		float const theta = rand_interval(0, 2 * pi);
@@ -134,26 +167,47 @@ void emit_object(const model& mod) {
 	}
 }
 
-void emit_particle()
+void emit_particle(int scenario)
 {
 	// Emit particle with random velocity
 	// Assume first that all particles have the same radius and mass
 	static buffer<vec3> const color_lut = { {1,0,0},{0,1,0},{0,0,1},{1,1,0},{1,0,1},{0,1,1} };
 	if (timer.event && user.gui.add_sphere) {
-		float const theta = rand_interval(0, 2 * pi);
-		vec3 const pos = vec3(rand_interval(-0.5f, 0.5f), rand_interval(-0.5f, 0.5f), rand_interval(-0.5f, 0.5f));
-		vec3 const v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 4.0f);
+		vec3 pos;
+		vec3 v;
+		float rad = 0;
+		float mass = 0;
+		if (scenario == 0) {
+			float const theta = rand_interval(0, 2 * pi);
+			v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 4.0f);
+			rad = 0.02f;
+			mass = 1.f;
+		}
+		else if (scenario == 1) {
+			pos = vec3(rand_interval(-0.97f, 0.97f), rand_interval(-0.97f, 0.97f), rand_interval(0.9f, 0.97f));
+			if (particles.size() == 0)
+				rad = 0.2f;
+			else
+				rad = rand_interval(0.01f, 0.02f);
+			mass = rad * 50;
+		}
+		else if (scenario == 3) {
+			float const theta = rand_interval(0, 2 * pi);
+			v = vec3(1.0f * std::cos(theta), 1.0f * std::sin(theta), 4.0f);
+			rad = 0.06f;
+			mass = 1.f;
+		}
 		particle_structure particle;
 		particle.p = pos;
-		particle.r = 0.02f;
+		particle.r = rad;
 		particle.c = color_lut[int(rand_interval() * color_lut.size())];
 		particle.v = v;
-		particle.m = 1.0f;
+		particle.m = mass;
 		particles.push_back(particle);
 	}
 }
 
-void initialize_data()
+void initialize_data(int scenario)
 {
 	GLuint const shader_mesh = opengl_create_shader_program(opengl_shader_preset("mesh_vertex"), opengl_shader_preset("mesh_fragment"));
 	GLuint const shader_uniform_color = opengl_create_shader_program(opengl_shader_preset("single_color_vertex"), opengl_shader_preset("single_color_fragment"));
@@ -172,19 +226,31 @@ void initialize_data()
 	sphere = mesh_drawable(mesh_primitive_sphere());
 
 	//obstacle mesh
-	object = model(mesh_load_file_obj("../MeshCollider/assets/canyon2.obj"));
-	//object.rotate(rot);
-	object.scale(0.002f);
-	object.translate(vec3(0.f, 0.f, -1.f));
-	object.BVHroot() = BVHnode(&(object.modelMesh()), 1.f);
-	objects.push_back(&object);
-	object_drawable = mesh_drawable(object.modelMesh());
+	if (scenario == 0 || scenario == 1 || scenario == 2) {
+		object = model(mesh_load_file_obj("../MeshCollider/assets/canyon2.obj"));
+		object.scale(0.002f);
+		object.translate(vec3(0.f, 0.f, -1.f));
+		object.BVHroot() = BVHnode(&(object.modelMesh()), 1.f);
+		objects.push_back(&object);
+		object_drawable = mesh_drawable(object.modelMesh());
+	}
 
-	pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
-	pin.rotate(rot);
-	pin.scale(0.05f);
-	pin.BVHroot() = BVHnode(&(pin.modelMesh()), 1.f);
-	pin_drawable = mesh_drawable(pin.modelMesh());
+	if (scenario == 2 || scenario == 3) {
+		pin = model(mesh_load_file_obj("../MeshCollider/assets/bowling_pin.obj"));
+		pin.rotate(rot);
+		pin.scale(0.05f);
+		pin.BVHroot() = BVHnode(&(pin.modelMesh()), 1.f);
+		pin_drawable = mesh_drawable(pin.modelMesh());
+	}
+
+	if (scenario == 3) {
+		model* obj = new model(pin);
+		obj->updatePosition(vec3(1000.f, -1000.f, -1000.f));
+		objects.push_back(obj);
+		model* obj2 = new model(pin); // change to X-wing
+		obj2->updatePosition(vec3(0.f, 0.f, -1.f));
+		objects.push_back(obj2);
+	}
 
 	// Edges of the containing cube
 	//  Note: this data structure is set for display purpose - don't use it to compute some information on the cube - it would be un-necessarily complex
@@ -225,6 +291,29 @@ void display_scene_obj()
 	draw(cube_wireframe, scene);
 }
 
+void display_scene_both()
+{
+	size_t const N = particles.size();
+	for (size_t k = 0; k < N; ++k)
+	{
+		particle_structure const& particle = particles[k];
+		sphere.shading.color = particle.c;
+		sphere.transform.translate = particle.p;
+		sphere.transform.scale = particle.r;
+		draw(sphere, scene);
+	}
+	size_t const N_obj = objects.size();
+	for (size_t k = 0; k < N_obj; k++)
+	{
+		const model* obj = objects[k];
+		pin_drawable.shading.color = obj->color();
+		pin_drawable.transform.translate = obj->position();
+		pin_drawable.transform.scale = obj->sizeScale();
+		draw(pin_drawable, scene);
+	}
+	draw(cube_wireframe, scene);
+}
+
 void display_interface()
 {
 	ImGui::Checkbox("Frame", &user.gui.display_frame);
@@ -241,6 +330,14 @@ void display_interface_obj()
 	ImGui::Checkbox("Add object", &user.gui.add_obj);
 }
 
+void display_interface_both()
+{
+	ImGui::Checkbox("Frame", &user.gui.display_frame);
+	ImGui::SliderFloat("Time scale", &timer.scale, 0.05f, 2.0f, "%.2f s");
+	ImGui::SliderFloat("Interval create object", &timer.event_period, 0.05f, 2.0f, "%.2f s");
+	ImGui::Checkbox("Add sphere", &user.gui.add_sphere);
+	ImGui::Checkbox("Reverse gravity", &user.gui.reverse_gravity);
+}
 
 void window_size_callback(GLFWwindow*, int width, int height)
 {

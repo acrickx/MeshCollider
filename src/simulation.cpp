@@ -224,8 +224,10 @@ void collision_sphere_sphere(vcl::vec3& p1, vcl::vec3& v1, float r1, vcl::vec3& 
 }
 
 // objects[0] is a statis object so it's treated differently
-void simulate(std::vector<model*>& objects, float dt_true) {
-	vec3 const g = { 0,0,-9.81f };
+void simulate(std::vector<model*>& objects, float dt_true, bool reverse_g) {
+	vec3 g = { 0,0,-9.81f };
+	if (reverse_g)
+		g[2] = -g[2];
 	size_t const N_substep = 10;
 	float const dt = dt_true / N_substep;
 
@@ -268,7 +270,9 @@ void simulate(std::vector<particle_structure>& particles, float dt_true, std::ve
 	size_t const N_substep = 10;
 	float const dt = dt_true / N_substep;
 	// for grid
-	float rad = 0.02f;
+	float rad = 0.f;
+	if (particles.size() >= 1)
+		rad = particles[0].r;
 	float confidenceFactor = 2.f;
 	vec3 minCube(-1.f, -1.f, -1.f);
 	vec3 maxCube(1.f, 1.f, 1.f);
@@ -289,7 +293,7 @@ void simulate(std::vector<particle_structure>& particles, float dt_true, std::ve
 		}
 
 		// Collisions between spheres
-		if (particles.size() > 20) { // grid acceleration data structure
+		if (particles.size() > 2) { // grid acceleration data structure
 			std::vector<std::vector<size_t>> grid(nx * ny * nz);
 			for (size_t i = 0; i < N; i++) {
 				particle_structure& part = particles[i];
